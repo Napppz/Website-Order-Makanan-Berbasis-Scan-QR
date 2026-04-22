@@ -22,41 +22,41 @@ export default async function HomePage() {
   const highlightItems = categories.flatMap((category) => category.menuItems).slice(0, 3);
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-8 md:px-10 md:py-10">
-      <section className="overflow-hidden rounded-[36px] bg-stone-950 text-white shadow-2xl">
-        <div className="grid gap-10 px-6 py-10 md:grid-cols-[1.2fr_0.8fr] md:px-10 md:py-14">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 md:px-8 md:py-8 xl:px-10 xl:py-10">
+      <section className="overflow-hidden rounded-[28px] bg-stone-950 text-white shadow-2xl sm:rounded-[36px]">
+        <div className="grid gap-8 px-5 py-8 sm:px-6 md:px-8 md:py-10 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10 xl:px-10 xl:py-14">
           <div className="space-y-6">
             <p className="inline-flex rounded-full bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-orange-200">
               Website order restoran berbasis QR
             </p>
             <div className="space-y-4">
-              <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-white md:text-6xl">
+              <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-6xl">
                 Pesan dari meja, bayar lebih cepat, dan pantau semua order dari dashboard kasir.
               </h1>
-              <p className="max-w-2xl text-lg leading-8 text-stone-300">
+              <p className="max-w-2xl text-base leading-7 text-stone-300 sm:text-lg sm:leading-8">
                 Customer cukup scan QR meja untuk melihat menu, membuat pesanan makanan dan
                 minuman, lalu memilih bayar di kasir atau upload bukti bayar QRIS.
               </p>
             </div>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
                 href={tables[0] ? `/menu/${tables[0].code}` : "/login"}
-                className="rounded-full bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600"
+                className="w-full rounded-full bg-orange-500 px-6 py-3 text-center font-semibold text-white transition hover:bg-orange-600 sm:w-auto"
               >
                 Coba scan meja pertama
               </Link>
               <Link
                 href="/login"
-                className="rounded-full border border-white/15 px-6 py-3 font-semibold text-white transition hover:bg-white/10"
+                className="w-full rounded-full border border-white/15 px-6 py-3 text-center font-semibold text-white transition hover:bg-white/10 sm:w-auto"
               >
                 Masuk dashboard kasir
               </Link>
             </div>
           </div>
-          <div className="grid gap-4">
-            <div className="rounded-[30px] bg-white/10 p-5 backdrop-blur">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="rounded-[24px] bg-white/10 p-5 backdrop-blur sm:rounded-[30px]">
               <p className="text-xs uppercase tracking-[0.3em] text-orange-200">Stat cepat</p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
                 <div className="rounded-3xl bg-white/10 p-4">
                   <p className="text-sm text-stone-300">Kategori menu</p>
                   <p className="mt-2 text-3xl font-bold">{categories.length}</p>
@@ -67,7 +67,7 @@ export default async function HomePage() {
                 </div>
               </div>
             </div>
-            <div className="rounded-[30px] bg-gradient-to-br from-orange-400 via-amber-300 to-orange-200 p-5 text-stone-950">
+            <div className="rounded-[24px] bg-gradient-to-br from-orange-400 via-amber-300 to-orange-200 p-5 text-stone-950 sm:rounded-[30px]">
               <p className="text-xs uppercase tracking-[0.3em] text-stone-800">Preview flow</p>
               <ol className="mt-4 space-y-3 text-sm font-medium">
                 <li>1. Customer scan QR di meja</li>
@@ -80,7 +80,7 @@ export default async function HomePage() {
       </section>
 
       {setupError ? (
-        <section className="mt-10 rounded-[28px] border border-amber-300 bg-amber-50 p-6 text-stone-900 shadow-sm">
+        <section className="mt-8 rounded-[24px] border border-amber-300 bg-amber-50 p-5 text-stone-900 shadow-sm sm:mt-10 sm:rounded-[28px] sm:p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-700">
             Setup production belum lengkap
           </p>
@@ -94,11 +94,11 @@ export default async function HomePage() {
           </pre>
         </section>
       ) : (
-        <section className="mt-10 grid gap-6 lg:grid-cols-3">
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:mt-10 lg:grid-cols-3 lg:gap-6">
           {highlightItems.map((item) => (
             <article
               key={item.id}
-              className="rounded-[28px] bg-white/80 p-6 shadow-sm ring-1 ring-stone-200 backdrop-blur"
+              className="rounded-[24px] bg-white/80 p-5 shadow-sm ring-1 ring-stone-200 backdrop-blur sm:rounded-[28px] sm:p-6"
             >
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-300 text-xl font-bold text-white">
                 {item.name

@@ -21,35 +21,37 @@ export default async function CashierLayout({
   return (
     <div className="dashboard-shell min-h-screen">
       <header className="border-b border-stone-200/80 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-5 md:px-8 lg:flex-row lg:items-center lg:justify-between">
-          <div>
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 md:px-8 lg:flex-row lg:items-center lg:justify-between lg:py-5">
+          <div className="min-w-0">
             <p className="text-xs uppercase tracking-[0.3em] text-orange-500">Kasir restoran</p>
-            <h1 className="mt-2 text-2xl font-semibold text-stone-950">Dashboard QR Resto Order</h1>
+            <h1 className="mt-2 text-xl font-semibold text-stone-950 sm:text-2xl">Dashboard QR Resto Order</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-stone-100 px-4 py-2 text-sm font-medium text-stone-700">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <span className="w-full rounded-full bg-stone-100 px-4 py-2 text-center text-sm font-medium text-stone-700 sm:w-auto">
               {cashier.name}
             </span>
             <form action={logoutCashier}>
-              <button className="rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white">
+              <button className="w-full rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white sm:w-auto">
                 Logout
               </button>
             </form>
           </div>
         </div>
-        <nav className="mx-auto flex max-w-7xl flex-wrap gap-3 px-6 pb-5 md:px-8">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-orange-300 hover:text-orange-600"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <div className="mx-auto max-w-7xl px-4 pb-4 sm:px-6 md:px-8 md:pb-5">
+          <nav className="-mx-4 flex gap-3 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="shrink-0 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-orange-300 hover:text-orange-600"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
       </header>
-      <main className="mx-auto max-w-7xl px-6 py-8 md:px-8">{children}</main>
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 md:px-8 md:py-8">{children}</main>
     </div>
   );
 }

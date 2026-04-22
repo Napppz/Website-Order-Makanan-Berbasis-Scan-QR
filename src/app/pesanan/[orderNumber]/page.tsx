@@ -28,12 +28,12 @@ export default async function OrderStatusPage({
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
-      <section className="rounded-[36px] bg-white p-8 shadow-xl ring-1 ring-stone-200">
+    <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
+      <section className="rounded-[28px] bg-white p-5 shadow-xl ring-1 ring-stone-200 sm:rounded-[36px] sm:p-8">
         <p className="text-xs uppercase tracking-[0.3em] text-orange-500">Status pesanan</p>
         <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold text-stone-950">{order.orderNumber}</h1>
+          <div className="min-w-0">
+            <h1 className="break-all text-2xl font-semibold text-stone-950 sm:text-3xl">{order.orderNumber}</h1>
             <p className="mt-2 text-stone-600">
               Terima kasih, {order.customerName}. Pesanan Anda untuk {order.table.name} sudah
               tercatat.
@@ -61,19 +61,19 @@ export default async function OrderStatusPage({
           </div>
         </div>
 
-        <div className="mt-8 rounded-[28px] border border-stone-200 p-5">
+        <div className="mt-8 rounded-[24px] border border-stone-200 p-4 sm:rounded-[28px] sm:p-5">
           <h2 className="text-lg font-semibold text-stone-950">Rincian item</h2>
           <div className="mt-4 space-y-3">
             {order.items.map((item) => (
               <div key={item.id} className="rounded-2xl bg-stone-50 p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
                     <p className="font-semibold text-stone-950">
                       {item.menuItem.name} x{item.quantity}
                     </p>
                     {item.note ? <p className="mt-1 text-sm text-stone-500">{item.note}</p> : null}
                   </div>
-                  <p className="font-semibold text-stone-900">{formatCurrency(item.subtotal)}</p>
+                  <p className="font-semibold text-stone-900 sm:text-right">{formatCurrency(item.subtotal)}</p>
                 </div>
               </div>
             ))}
@@ -81,8 +81,8 @@ export default async function OrderStatusPage({
         </div>
 
         {order.paymentProof ? (
-          <div className="mt-6 rounded-[28px] border border-stone-200 p-5">
-            <div className="flex items-center justify-between gap-4">
+          <div className="mt-6 rounded-[24px] border border-stone-200 p-4 sm:rounded-[28px] sm:p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-stone-950">Status bukti bayar</h2>
                 <p className="mt-1 text-sm text-stone-500">
@@ -97,23 +97,23 @@ export default async function OrderStatusPage({
               href={order.paymentProof.imageUrl}
               target="_blank"
               rel="noreferrer"
-              className="mt-4 inline-flex rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white"
+              className="mt-4 inline-flex w-full justify-center rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white sm:w-auto"
             >
               Lihat bukti bayar
             </a>
           </div>
         ) : null}
 
-        <div className="mt-8 flex flex-wrap gap-3">
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Link
             href={`/menu/${order.table.code}`}
-            className="rounded-full bg-orange-500 px-5 py-3 font-semibold text-white hover:bg-orange-600"
+            className="rounded-full bg-orange-500 px-5 py-3 text-center font-semibold text-white hover:bg-orange-600"
           >
             Kembali ke menu meja
           </Link>
           <Link
             href="/"
-            className="rounded-full border border-stone-300 px-5 py-3 font-semibold text-stone-800"
+            className="rounded-full border border-stone-300 px-5 py-3 text-center font-semibold text-stone-800"
           >
             Halaman utama
           </Link>

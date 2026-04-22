@@ -100,14 +100,14 @@ export function ManualOrderClient({
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-      <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-stone-200">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+      <div className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-stone-200 sm:rounded-[28px] sm:p-6">
         <h2 className="text-xl font-semibold text-stone-950">Form pesanan manual</h2>
         <p className="mt-1 text-sm text-stone-500">
           Gunakan halaman ini untuk membuat pesanan walk-in langsung dari dashboard kasir.
         </p>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <div className="space-y-2">
             <label className="text-sm font-medium text-stone-700">Nama pelanggan</label>
             <input
@@ -143,7 +143,7 @@ export function ManualOrderClient({
           />
         </div>
 
-        <div className="mt-6 grid gap-3 md:grid-cols-2">
+        <div className="mt-6 grid gap-3 lg:grid-cols-2">
           <label className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
             <div className="flex items-center gap-3">
               <input
@@ -177,8 +177,8 @@ export function ManualOrderClient({
             const quantity = cart.find((item) => item.menuItemId === menuItem.id)?.quantity ?? 0;
             return (
               <div key={menuItem.id} className="rounded-3xl border border-stone-200 p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
                     <p className="text-xs uppercase tracking-[0.25em] text-stone-400">
                       {menuItem.categoryName}
                     </p>
@@ -187,7 +187,7 @@ export function ManualOrderClient({
                       {formatCurrency(menuItem.price)}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
                     <button
                       type="button"
                       onClick={() => updateQuantity(menuItem.id, -1)}
@@ -219,8 +219,8 @@ export function ManualOrderClient({
         </div>
       </div>
 
-      <aside className="space-y-5">
-        <div className="rounded-[28px] bg-stone-950 p-6 text-white">
+      <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
+        <div className="rounded-[24px] bg-stone-950 p-4 text-white sm:rounded-[28px] sm:p-6">
           <h3 className="text-xl font-semibold">Ringkasan order</h3>
           <div className="mt-4 space-y-3">
             {cart.length ? (

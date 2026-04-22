@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 import { StatusBadge } from "@/components/status-badge";
-import { getDashboardStats, getOrders } from "@/lib/data";
 import { orderStatusLabels, paymentMethodLabels } from "@/lib/constants";
+import { getDashboardStats, getOrders } from "@/lib/data";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default async function CashierDashboardPage() {
@@ -14,7 +14,7 @@ export default async function CashierDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { label: "Total menu", value: stats.menuCount, tone: "from-orange-500 to-amber-300" },
           { label: "Total meja", value: stats.tableCount, tone: "from-sky-500 to-cyan-300" },
@@ -33,8 +33,59 @@ export default async function CashierDashboardPage() {
         ))}
       </section>
 
+      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-[24px] bg-stone-950 p-4 text-white shadow-xl sm:rounded-[32px] sm:p-6">
+          <p className="text-xs uppercase tracking-[0.3em] text-orange-200">Operasional hari ini</p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-3xl bg-white/10 p-4">
+              <p className="text-sm text-stone-300">Order masuk hari ini</p>
+              <p className="mt-2 text-3xl font-bold">{stats.todayOrderCount}</p>
+            </div>
+            <div className="rounded-3xl bg-white/10 p-4">
+              <p className="text-sm text-stone-300">Sedang diproses</p>
+              <p className="mt-2 text-3xl font-bold">{stats.processingCount}</p>
+            </div>
+            <div className="rounded-3xl bg-white/10 p-4">
+              <p className="text-sm text-stone-300">Omzet terkonfirmasi</p>
+              <p className="mt-2 text-3xl font-bold text-orange-200">
+                {formatCurrency(stats.todayRevenue)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-stone-200 sm:rounded-[32px] sm:p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-orange-500">Antrian prioritas</p>
+              <h2 className="mt-2 text-2xl font-semibold text-stone-950">Fokus kerja kasir sekarang</h2>
+            </div>
+            <Link
+              href="/kasir/pesanan?filter=payment_submitted"
+              className="rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white"
+            >
+              Cek bukti bayar
+            </Link>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-200">
+              <p className="text-sm text-amber-700">Menunggu pembayaran</p>
+              <p className="mt-2 text-3xl font-bold text-amber-900">{stats.pendingCount}</p>
+            </div>
+            <div className="rounded-3xl bg-sky-50 p-4 ring-1 ring-sky-200">
+              <p className="text-sm text-sky-700">Bukti QRIS masuk</p>
+              <p className="mt-2 text-3xl font-bold text-sky-900">{stats.qrisReviewCount}</p>
+            </div>
+          </div>
+          <p className="mt-4 text-sm leading-7 text-stone-600">
+            Prioritaskan review bukti QRIS lebih dulu supaya customer tidak menunggu validasi terlalu lama,
+            lalu lanjutkan order yang sudah berstatus dibayar ke tahap proses dapur.
+          </p>
+        </div>
+      </section>
+
       <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-[32px] bg-white p-6 shadow-sm ring-1 ring-stone-200">
+        <div className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-stone-200 sm:rounded-[32px] sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-stone-950">Pesanan terbaru</h2>
@@ -53,13 +104,13 @@ export default async function CashierDashboardPage() {
             {recentOrders.slice(0, 6).map((order) => (
               <div key={order.id} className="rounded-3xl border border-stone-200 p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-mono text-sm text-stone-500">{order.orderNumber}</p>
                     <h3 className="mt-1 text-lg font-semibold text-stone-950">
                       {order.customerName} - {order.table.name}
                     </h3>
                     <p className="mt-1 text-sm text-stone-500">
-                      {paymentMethodLabels[order.paymentMethod]} • {formatDate(order.createdAt)}
+                      {paymentMethodLabels[order.paymentMethod]} - {formatDate(order.createdAt)}
                     </p>
                   </div>
                   <div className="flex flex-col items-start gap-2 md:items-end">
@@ -74,7 +125,7 @@ export default async function CashierDashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-[32px] bg-stone-950 p-6 text-white shadow-xl">
+        <div className="rounded-[24px] bg-stone-950 p-4 text-white shadow-xl sm:rounded-[32px] sm:p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold">Pesanan yang sudah dibayar</h2>
@@ -94,7 +145,7 @@ export default async function CashierDashboardPage() {
                   <div>
                     <p className="font-semibold">{order.customerName}</p>
                     <p className="text-sm text-stone-300">
-                      {order.table.name} • {formatDate(order.createdAt)}
+                      {order.table.name} - {formatDate(order.createdAt)}
                     </p>
                   </div>
                   <p className="font-semibold text-orange-200">{formatCurrency(order.totalAmount)}</p>

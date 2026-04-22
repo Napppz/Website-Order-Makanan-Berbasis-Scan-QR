@@ -15,7 +15,7 @@ export function LoginForm() {
         <label className="text-sm font-medium text-stone-700">Email atau username</label>
         <input
           name="identity"
-          className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 outline-none ring-0 transition focus:border-orange-500"
+          className="min-h-12 w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 outline-none ring-0 transition focus:border-orange-500"
           placeholder="kasir atau kasir@example.com"
         />
       </div>
@@ -24,7 +24,7 @@ export function LoginForm() {
         <input
           type="password"
           name="password"
-          className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 outline-none ring-0 transition focus:border-orange-500"
+          className="min-h-12 w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 outline-none ring-0 transition focus:border-orange-500"
           placeholder="Masukkan password"
         />
       </div>
