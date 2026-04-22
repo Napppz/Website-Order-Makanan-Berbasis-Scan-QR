@@ -94,6 +94,46 @@ export async function getTables() {
   });
 }
 
+export async function getDashboardRecentOrders(limit = 6) {
+  return getPrisma().order.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      orderNumber: true,
+      customerName: true,
+      paymentMethod: true,
+      status: true,
+      totalAmount: true,
+      createdAt: true,
+      table: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+}
+
+export async function getDashboardPaidOrders(limit = 5) {
+  return getPrisma().order.findMany({
+    where: { status: OrderStatus.paid },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      customerName: true,
+      totalAmount: true,
+      createdAt: true,
+      table: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+}
+
 export async function getOrders(
   status?: OrderStatus | "all" | "paid-only",
   search?: string,

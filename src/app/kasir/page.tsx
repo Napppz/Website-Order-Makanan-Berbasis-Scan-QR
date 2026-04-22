@@ -2,14 +2,18 @@ import Link from "next/link";
 
 import { StatusBadge } from "@/components/status-badge";
 import { orderStatusLabels, paymentMethodLabels } from "@/lib/constants";
-import { getDashboardStats, getOrders } from "@/lib/data";
+import {
+  getDashboardPaidOrders,
+  getDashboardRecentOrders,
+  getDashboardStats,
+} from "@/lib/data";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default async function CashierDashboardPage() {
   const [stats, recentOrders, paidOrders] = await Promise.all([
     getDashboardStats(),
-    getOrders("all"),
-    getOrders("paid-only"),
+    getDashboardRecentOrders(),
+    getDashboardPaidOrders(),
   ]);
 
   return (
@@ -101,7 +105,7 @@ export default async function CashierDashboardPage() {
             </Link>
           </div>
           <div className="space-y-4">
-            {recentOrders.slice(0, 6).map((order) => (
+            {recentOrders.map((order) => (
               <div key={order.id} className="rounded-3xl border border-stone-200 p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div className="min-w-0">
@@ -139,7 +143,7 @@ export default async function CashierDashboardPage() {
             </Link>
           </div>
           <div className="mt-5 space-y-3">
-            {paidOrders.slice(0, 5).map((order) => (
+            {paidOrders.map((order) => (
               <div key={order.id} className="rounded-3xl bg-white/10 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
