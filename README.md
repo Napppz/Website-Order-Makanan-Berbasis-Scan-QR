@@ -79,6 +79,8 @@ Catatan deploy:
 - Bukti bayar QRIS disimpan langsung sebagai data URL di database agar tidak bergantung pada filesystem server Vercel.
 - Gunakan database PostgreSQL yang bisa diakses dari Vercel, misalnya Vercel Postgres atau Neon.
 - Setelah `DATABASE_URL` tersedia, jalankan `npm run db:push` dan `npm run db:seed` terhadap database tersebut sebelum aplikasi dipakai penuh.
+- Jika homepage menampilkan pesan setup database, berarti build berhasil tetapi runtime production belum bisa terhubung ke PostgreSQL.
+- Di Vercel, isi `NEXT_PUBLIC_APP_URL` dengan domain deploy production Anda, misalnya `https://namaproject.vercel.app`.
 
 ## Login kasir default
 

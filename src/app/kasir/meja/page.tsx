@@ -3,10 +3,11 @@ import QRCode from "qrcode";
 
 import { createTableAction, deleteTableAction } from "@/app/actions";
 import { getTables } from "@/lib/data";
+import { getAppBaseUrl } from "@/lib/app-url";
 
 export default async function TableManagementPage() {
   const tables = await getTables();
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const baseUrl = await getAppBaseUrl();
   const qrTables = await Promise.all(
     tables.map(async (table) => ({
       ...table,

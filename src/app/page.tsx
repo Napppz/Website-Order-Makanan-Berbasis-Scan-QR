@@ -6,7 +6,19 @@ import { formatCurrency } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [categories, tables] = await Promise.all([getCategoriesWithItems(), getTables()]);
+  let categories = [] as Awaited<ReturnType<typeof getCategoriesWithItems>>;
+  let tables = [] as Awaited<ReturnType<typeof getTables>>;
+  let setupError: string | null = null;
+
+  try {
+    [categories, tables] = await Promise.all([getCategoriesWithItems(), getTables()]);
+  } catch (error) {
+    setupError =
+      error instanceof Error
+        ? error.message
+        : "Aplikasi belum bisa membaca database production.";
+  }
+
   const highlightItems = categories.flatMap((category) => category.menuItems).slice(0, 3);
 
   return (
@@ -67,27 +79,43 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mt-10 grid gap-6 lg:grid-cols-3">
-        {highlightItems.map((item) => (
-          <article
-            key={item.id}
-            className="rounded-[28px] bg-white/80 p-6 shadow-sm ring-1 ring-stone-200 backdrop-blur"
-          >
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-300 text-xl font-bold text-white">
-              {item.name
-                .split(" ")
-                .slice(0, 2)
-                .map((part) => part[0])
-                .join("")}
-            </div>
-            <h2 className="mt-4 text-xl font-semibold text-stone-950">{item.name}</h2>
-            <p className="mt-2 text-sm leading-7 text-stone-600">
-              {item.description ?? "Menu signature yang siap dipesan lewat QR meja."}
-            </p>
-            <p className="mt-4 text-lg font-bold text-orange-600">{formatCurrency(item.price)}</p>
-          </article>
-        ))}
-      </section>
+      {setupError ? (
+        <section className="mt-10 rounded-[28px] border border-amber-300 bg-amber-50 p-6 text-stone-900 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-700">
+            Setup production belum lengkap
+          </p>
+          <h2 className="mt-3 text-2xl font-semibold">App sudah ter-deploy, tapi database belum siap.</h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-700">
+            Isi `DATABASE_URL` PostgreSQL di Vercel, lalu jalankan `prisma db push` dan
+            `node prisma/seed.mjs` ke database production. Setelah itu reload halaman ini.
+          </p>
+          <pre className="mt-4 overflow-x-auto rounded-2xl bg-stone-950 p-4 text-sm text-stone-100">
+            <code>{setupError}</code>
+          </pre>
+        </section>
+      ) : (
+        <section className="mt-10 grid gap-6 lg:grid-cols-3">
+          {highlightItems.map((item) => (
+            <article
+              key={item.id}
+              className="rounded-[28px] bg-white/80 p-6 shadow-sm ring-1 ring-stone-200 backdrop-blur"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-300 text-xl font-bold text-white">
+                {item.name
+                  .split(" ")
+                  .slice(0, 2)
+                  .map((part) => part[0])
+                  .join("")}
+              </div>
+              <h2 className="mt-4 text-xl font-semibold text-stone-950">{item.name}</h2>
+              <p className="mt-2 text-sm leading-7 text-stone-600">
+                {item.description ?? "Menu signature yang siap dipesan lewat QR meja."}
+              </p>
+              <p className="mt-4 text-lg font-bold text-orange-600">{formatCurrency(item.price)}</p>
+            </article>
+          ))}
+        </section>
+      )}
     </main>
   );
 }
