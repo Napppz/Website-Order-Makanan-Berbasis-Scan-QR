@@ -1,6 +1,6 @@
 # QR Resto Order
 
-Website order makanan dan minuman berbasis scan QR per meja dengan dashboard kasir.
+Website order makanan dan minuman berbasis scan QR per meja dengan dashboard kasir, dirapikan agar cocok untuk deploy di Vercel.
 
 ## Fitur utama
 
@@ -24,7 +24,7 @@ Website order makanan dan minuman berbasis scan QR per meja dengan dashboard kas
 - Next.js 16 App Router
 - Tailwind CSS 4
 - Prisma Client
-- SQLite lokal untuk MVP
+- PostgreSQL untuk environment production/Vercel
 - Session auth sederhana untuk kasir
 
 ## Menjalankan project
@@ -41,7 +41,7 @@ npm install
 copy .env.example .env
 ```
 
-3. Siapkan database lokal dan seed data:
+3. Siapkan database dan seed data:
 
 ```bash
 npm run db:generate
@@ -61,6 +61,25 @@ npm run dev
 http://localhost:3000
 ```
 
+## Deploy ke Vercel
+
+Tambahkan environment variable ini di Vercel Project Settings:
+
+- `DATABASE_URL`
+- `SESSION_SECRET`
+- `CASHIER_NAME`
+- `CASHIER_EMAIL`
+- `CASHIER_USERNAME`
+- `CASHIER_PASSWORD`
+- `NEXT_PUBLIC_APP_URL`
+
+Catatan deploy:
+
+- Project ini tidak lagi memakai dependency khusus Windows.
+- Bukti bayar QRIS disimpan langsung sebagai data URL di database agar tidak bergantung pada filesystem server Vercel.
+- Gunakan database PostgreSQL yang bisa diakses dari Vercel, misalnya Vercel Postgres atau Neon.
+- Setelah `DATABASE_URL` tersedia, jalankan `npm run db:push` dan `npm run db:seed` terhadap database tersebut sebelum aplikasi dipakai penuh.
+
 ## Login kasir default
 
 - Email: `kasir@example.com`
@@ -75,5 +94,5 @@ Nilai ini bisa diubah dari file `.env` sebelum menjalankan `npm run db:seed`.
 - `npm run build` build production
 - `npm run lint` cek lint
 - `npm run db:generate` generate Prisma client
-- `npm run db:push` setup SQLite schema lokal
+- `npm run db:push` sinkronkan schema Prisma ke PostgreSQL
 - `npm run db:seed` isi data awal kasir, meja, kategori, menu, dan order demo

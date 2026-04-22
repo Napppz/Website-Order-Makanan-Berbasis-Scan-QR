@@ -4,21 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
-    "db:push": "node scripts/setup-db.mjs",
+    "db:push": "prisma db push",
     "db:seed": "node prisma/seed.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@next/swc-win32-x64-msvc": "^16.2.4",
     "@prisma/client": "^6.18.0",
-    "@tailwindcss/oxide-win32-x64-msvc": "^4.2.4",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
-    "effect": "^3.21.1",
     "jose": "^6.2.2",
     "next": "16.2.4",
     "prisma": "^6.18.0",

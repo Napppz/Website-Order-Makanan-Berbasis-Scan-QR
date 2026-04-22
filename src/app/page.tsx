@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getCategoriesWithItems, getTables } from "@/lib/data";
 import { formatCurrency } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const [categories, tables] = await Promise.all([getCategoriesWithItems(), getTables()]);
   const highlightItems = categories.flatMap((category) => category.menuItems).slice(0, 3);

@@ -1,7 +1,5 @@
 "use server";
 
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 
 import {
@@ -59,17 +57,9 @@ async function saveProofFile(file: File) {
     throw new Error("Ukuran bukti bayar maksimal 3MB.");
   }
 
-  const uploadDir = join(process.cwd(), "public", "uploads", "proofs");
-  await mkdir(uploadDir, { recursive: true });
-
-  const extension = file.name.split(".").pop() || "jpg";
-  const fileName = `${Date.now()}-${randomUUID()}.${extension}`;
-  const filePath = join(uploadDir, fileName);
   const buffer = Buffer.from(await file.arrayBuffer());
-
-  await writeFile(filePath, buffer);
-
-  return `/uploads/proofs/${fileName}`;
+  const base64 = buffer.toString("base64");
+  return `data:${file.type};base64,${base64}`;
 }
 
 function parseCart(rawCart: string) {
