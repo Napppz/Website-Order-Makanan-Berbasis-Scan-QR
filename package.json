@@ -1,0 +1,41 @@
+{
+  "name": "website-order-makanan-berbasis-scan-qr",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint",
+    "db:generate": "prisma generate",
+    "db:push": "node scripts/setup-db.mjs",
+    "db:seed": "node prisma/seed.mjs",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@next/swc-win32-x64-msvc": "^16.2.4",
+    "@prisma/client": "^6.18.0",
+    "@tailwindcss/oxide-win32-x64-msvc": "^4.2.4",
+    "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
+    "effect": "^3.21.1",
+    "jose": "^6.2.2",
+    "next": "16.2.4",
+    "prisma": "^6.18.0",
+    "qrcode": "^1.5.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

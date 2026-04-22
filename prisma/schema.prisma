@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum PaymentMethod {
+  cashier
+  qris_upload
+}
+
+enum OrderStatus {
+  pending_payment
+  payment_submitted
+  paid
+  processing
+  completed
+  cancelled
+}
+
+enum PaymentProofStatus {
+  submitted
+  approved
+  rejected
+}
+
+model CashierUser {
+  id             String         @id @default(cuid())
+  email          String         @unique
+  username       String         @unique
+  name           String
+  passwordHash   String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  reviewedProofs PaymentProof[]
+}
+
+model Table {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  menuItems MenuItem[]
+}
+
+model MenuItem {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  description String?
+  price       Int
+  imageUrl    String?
+  isAvailable Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id            String         @id @default(cuid())
+  orderNumber   String         @unique
+  customerName  String
+  notes         String?
+  paymentMethod PaymentMethod
+  status        OrderStatus
+  totalAmount   Int
+  paidAt        DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  tableId       String
+  table         Table          @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  items         OrderItem[]
+  paymentProof  PaymentProof?
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  quantity   Int
+  note       String?
+  unitPrice  Int
+  subtotal   Int
+  orderId    String
+  menuItemId String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+}
+
+model PaymentProof {
+  id         String             @id @default(cuid())
+  imageUrl   String
+  status     PaymentProofStatus @default(submitted)
+  notes      String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  reviewedAt DateTime?
+  reviewerId String?
+  reviewer   CashierUser?       @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+  orderId    String             @unique
+  order      Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
