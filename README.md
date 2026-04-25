@@ -41,6 +41,12 @@ npm install
 copy .env.example .env
 ```
 
+Untuk Neon, isi:
+
+- `DATABASE_URL` dengan connection string pooled Neon untuk runtime aplikasi
+- `DIRECT_URL` dengan connection string direct Neon untuk `prisma db push`, seed, dan tooling Prisma
+- tambahkan `sslmode=require` dan gunakan string dari dashboard Neon sesuai branch/database yang aktif
+
 3. Siapkan database dan seed data:
 
 ```bash
@@ -66,6 +72,7 @@ http://localhost:3000
 Tambahkan environment variable ini di Vercel Project Settings:
 
 - `DATABASE_URL`
+- `DIRECT_URL`
 - `SESSION_SECRET`
 - `CASHIER_NAME`
 - `CASHIER_EMAIL`
@@ -78,7 +85,8 @@ Catatan deploy:
 - Project ini tidak lagi memakai dependency khusus Windows.
 - Bukti bayar QRIS disimpan langsung sebagai data URL di database agar tidak bergantung pada filesystem server Vercel.
 - Gunakan database PostgreSQL yang bisa diakses dari Vercel, misalnya Vercel Postgres atau Neon.
-- Setelah `DATABASE_URL` tersedia, jalankan `npm run db:push` dan `npm run db:seed` terhadap database tersebut sebelum aplikasi dipakai penuh.
+- Untuk Neon, pakai URL pooler pada `DATABASE_URL` dan URL direct non-pooler pada `DIRECT_URL`.
+- Setelah `DATABASE_URL` dan `DIRECT_URL` tersedia, jalankan `npm run db:push` dan `npm run db:seed` terhadap database tersebut sebelum aplikasi dipakai penuh.
 - Jika homepage menampilkan pesan setup database, berarti build berhasil tetapi runtime production belum bisa terhubung ke PostgreSQL.
 - Di Vercel, isi `NEXT_PUBLIC_APP_URL` dengan domain deploy production Anda, misalnya `https://namaproject.vercel.app`.
 

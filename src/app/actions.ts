@@ -1,6 +1,8 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 import {
   OrderStatus,
@@ -60,6 +62,52 @@ async function saveProofFile(file: File) {
   const buffer = Buffer.from(await file.arrayBuffer());
   const base64 = buffer.toString("base64");
   return `data:${file.type};base64,${base64}`;
+}
+
+async function saveMenuImageFile(file: File) {
+  if (!(file instanceof File) || file.size === 0) {
+    return null;
+  }
+
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error("Foto menu harus berformat JPG, PNG, atau WEBP.");
+  }
+
+  const maxSize = 4 * 1024 * 1024;
+  if (file.size > maxSize) {
+    throw new Error("Ukuran foto menu maksimal 4MB.");
+  }
+
+  const extensionMap: Record<string, string> = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+  };
+  const fileName = `menu-${randomUUID()}${extensionMap[file.type] ?? ".jpg"}`;
+  const uploadDirectory = path.join(process.cwd(), "public", "uploads");
+  const filePath = path.join(uploadDirectory, fileName);
+
+  await mkdir(uploadDirectory, { recursive: true });
+  await writeFile(filePath, Buffer.from(await file.arrayBuffer()));
+
+  return `/uploads/${fileName}`;
+}
+
+async function deleteMenuImageFile(imageUrl: string | null | undefined) {
+  if (!imageUrl?.startsWith("/uploads/")) {
+    return;
+  }
+
+  const filePath = path.join(process.cwd(), "public", imageUrl.replace(/^\/+/, ""));
+
+  try {
+    await unlink(filePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
 }
 
 function parseCart(rawCart: string) {
@@ -131,28 +179,40 @@ export async function createCategoryAction(formData: FormData) {
 export async function createMenuItemAction(formData: FormData) {
   await requireCashier();
 
-  const name = String(formData.get("name") ?? "").trim();
-  const categoryId = String(formData.get("categoryId") ?? "");
-  const price = Number(formData.get("price") ?? 0);
+  let imageUrl: string | null = null;
 
-  if (!name || !categoryId || price <= 0) {
-    return;
+  try {
+    const name = String(formData.get("name") ?? "").trim();
+    const categoryId = String(formData.get("categoryId") ?? "");
+    const price = Number(formData.get("price") ?? 0);
+
+    if (!name || !categoryId || price <= 0) {
+      return;
+    }
+
+    const imageFile = formData.get("imageFile");
+    imageUrl =
+      imageFile instanceof File ? await saveMenuImageFile(imageFile) : null;
+
+    await prisma.menuItem.create({
+      data: {
+        name,
+        slug: `${slugify(name)}-${randomUUID().slice(0, 5)}`,
+        description: String(formData.get("description") ?? "").trim() || null,
+        price,
+        imageUrl,
+        categoryId,
+        isAvailable: formData.get("isAvailable") === "on",
+      },
+    });
+
+    revalidatePath("/kasir/menu");
+    revalidatePath("/");
+  } catch (error) {
+    await deleteMenuImageFile(imageUrl);
+    console.error("Gagal menyimpan foto menu", error);
+    throw error;
   }
-
-  await prisma.menuItem.create({
-    data: {
-      name,
-      slug: `${slugify(name)}-${randomUUID().slice(0, 5)}`,
-      description: String(formData.get("description") ?? "").trim() || null,
-      price,
-      imageUrl: String(formData.get("imageUrl") ?? "").trim() || null,
-      categoryId,
-      isAvailable: formData.get("isAvailable") === "on",
-    },
-  });
-
-  revalidatePath("/kasir/menu");
-  revalidatePath("/");
 }
 
 export async function toggleMenuAvailabilityAction(formData: FormData) {
@@ -182,7 +242,14 @@ export async function deleteMenuItemAction(formData: FormData) {
     return;
   }
 
+  const menuItem = await prisma.menuItem.findUnique({
+    where: { id },
+    select: { imageUrl: true },
+  });
+
   await prisma.menuItem.delete({ where: { id } });
+  await deleteMenuImageFile(menuItem?.imageUrl);
+
   revalidatePath("/kasir/menu");
   revalidatePath("/");
 }

@@ -6,6 +6,7 @@ import {
   rejectPaymentProofAction,
   updateOrderStatusAction,
 } from "@/app/actions";
+import { CashierActionButton } from "@/components/cashier-action-button";
 import { StatusBadge } from "@/components/status-badge";
 import {
   orderStatusLabels,
@@ -25,6 +26,71 @@ const filterOptions: Array<{ value: "all" | OrderStatus | "paid"; label: string 
   { value: OrderStatus.completed, label: "Completed" },
   { value: OrderStatus.cancelled, label: "Cancelled" },
 ];
+
+type OrderActionConfig = {
+  label: string;
+  status: OrderStatus;
+  tone: string;
+  pendingLabel: string;
+  confirmMessage?: string;
+};
+
+function getOrderActionConfig(status: OrderStatus): OrderActionConfig[] {
+  switch (status) {
+    case OrderStatus.pending_payment:
+      return [
+        {
+          label: "Tandai paid",
+          status: OrderStatus.paid,
+          tone: "rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60",
+          pendingLabel: "Menyimpan...",
+        },
+        {
+          label: "Batalkan",
+          status: OrderStatus.cancelled,
+          tone: "rounded-full border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 disabled:opacity-60",
+          pendingLabel: "Membatalkan...",
+          confirmMessage: "Batalkan order ini?",
+        },
+      ];
+    case OrderStatus.payment_submitted:
+      return [
+        {
+          label: "Proses",
+          status: OrderStatus.processing,
+          tone: "rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60",
+          pendingLabel: "Memproses...",
+        },
+        {
+          label: "Batalkan",
+          status: OrderStatus.cancelled,
+          tone: "rounded-full border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 disabled:opacity-60",
+          pendingLabel: "Membatalkan...",
+          confirmMessage: "Batalkan order ini?",
+        },
+      ];
+    case OrderStatus.paid:
+      return [
+        {
+          label: "Proses",
+          status: OrderStatus.processing,
+          tone: "rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60",
+          pendingLabel: "Memproses...",
+        },
+      ];
+    case OrderStatus.processing:
+      return [
+        {
+          label: "Selesai",
+          status: OrderStatus.completed,
+          tone: "rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60",
+          pendingLabel: "Menyelesaikan...",
+        },
+      ];
+    default:
+      return [];
+  }
+}
 
 export default async function OrderManagementPage({
   searchParams,
@@ -157,22 +223,45 @@ export default async function OrderManagementPage({
 
                 <div className="space-y-4">
                   <div className="rounded-3xl bg-stone-50 p-4">
-                    <p className="text-sm text-stone-500">Aksi status</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm text-stone-500">Aksi status</p>
+                        <p className="mt-1 text-sm text-stone-700">
+                          {order.status === OrderStatus.pending_payment &&
+                            "Prioritaskan pembayaran atau batalkan jika order tidak lanjut."}
+                          {order.status === OrderStatus.payment_submitted &&
+                            "Review bukti bayar atau lanjutkan ke proses dapur."}
+                          {order.status === OrderStatus.paid &&
+                            "Pembayaran aman, order siap diproses."}
+                          {order.status === OrderStatus.processing &&
+                            "Tandai selesai ketika makanan sudah sampai ke customer."}
+                          {order.status === OrderStatus.completed &&
+                            "Order ini sudah selesai."}
+                          {order.status === OrderStatus.cancelled &&
+                            "Order ini sudah dibatalkan."}
+                        </p>
+                      </div>
+                      <StatusBadge tone={order.status}>{orderStatusLabels[order.status]}</StatusBadge>
+                    </div>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {[
-                        { label: "Tandai paid", status: OrderStatus.paid },
-                        { label: "Proses", status: OrderStatus.processing },
-                        { label: "Selesai", status: OrderStatus.completed },
-                        { label: "Batalkan", status: OrderStatus.cancelled },
-                      ].map((action) => (
-                        <form key={action.status} action={updateOrderStatusAction}>
-                          <input type="hidden" name="orderId" value={order.id} />
-                          <input type="hidden" name="nextStatus" value={action.status} />
-                          <button className="rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white">
-                            {action.label}
-                          </button>
-                        </form>
-                      ))}
+                      {getOrderActionConfig(order.status).length ? (
+                        getOrderActionConfig(order.status).map((action) => (
+                          <form key={action.status} action={updateOrderStatusAction}>
+                            <input type="hidden" name="orderId" value={order.id} />
+                            <input type="hidden" name="nextStatus" value={action.status} />
+                            <CashierActionButton
+                              label={action.label}
+                              pendingLabel={action.pendingLabel}
+                              className={action.tone}
+                              confirmMessage={action.confirmMessage}
+                            />
+                          </form>
+                        ))
+                      ) : (
+                        <p className="text-sm text-stone-500">
+                          Tidak ada aksi lanjutan yang diperlukan untuk status ini.
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -200,15 +289,20 @@ export default async function OrderManagementPage({
                       <div className="mt-4 flex flex-wrap gap-2">
                         <form action={approvePaymentProofAction}>
                           <input type="hidden" name="orderId" value={order.id} />
-                          <button className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
-                            Approve
-                          </button>
+                          <CashierActionButton
+                            label="Approve"
+                            pendingLabel="Menyetujui..."
+                            className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                          />
                         </form>
                         <form action={rejectPaymentProofAction}>
                           <input type="hidden" name="orderId" value={order.id} />
-                          <button className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white">
-                            Reject
-                          </button>
+                          <CashierActionButton
+                            label="Reject"
+                            pendingLabel="Menolak..."
+                            className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                            confirmMessage="Tolak bukti bayar ini? Customer akan diminta unggah ulang atau bayar di kasir."
+                          />
                         </form>
                       </div>
                     </div>

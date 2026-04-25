@@ -94,6 +94,36 @@ export async function getTables() {
   });
 }
 
+export async function getCashierNavCounts() {
+  const prisma = getPrisma();
+  const [needsAttentionCount, activeOrderCount] = await Promise.all([
+    prisma.order.count({
+      where: {
+        status: {
+          in: [OrderStatus.pending_payment, OrderStatus.payment_submitted],
+        },
+      },
+    }),
+    prisma.order.count({
+      where: {
+        status: {
+          in: [
+            OrderStatus.pending_payment,
+            OrderStatus.payment_submitted,
+            OrderStatus.paid,
+            OrderStatus.processing,
+          ],
+        },
+      },
+    }),
+  ]);
+
+  return {
+    needsAttentionCount,
+    activeOrderCount,
+  };
+}
+
 export async function getDashboardRecentOrders(limit = 6) {
   return getPrisma().order.findMany({
     orderBy: { createdAt: "desc" },

@@ -35,7 +35,11 @@ export default async function MenuManagementPage() {
 
         <div className="rounded-[32px] bg-white p-6 shadow-sm ring-1 ring-stone-200">
           <h2 className="text-xl font-semibold text-stone-950">Tambah menu baru</h2>
-          <form action={createMenuItemAction} className="mt-5 grid gap-4 md:grid-cols-2">
+          <form
+            action={createMenuItemAction}
+            encType="multipart/form-data"
+            className="mt-5 grid gap-4 md:grid-cols-2"
+          >
             <input
               name="name"
               placeholder="Nama menu"
@@ -58,11 +62,18 @@ export default async function MenuManagementPage() {
               placeholder="Harga"
               className="rounded-2xl border border-stone-300 px-4 py-3 outline-none focus:border-orange-500"
             />
-            <input
-              name="imageUrl"
-              placeholder="URL foto menu (opsional)"
-              className="rounded-2xl border border-stone-300 px-4 py-3 outline-none focus:border-orange-500"
-            />
+            <label className="rounded-2xl border border-dashed border-stone-300 px-4 py-3 text-sm text-stone-600">
+              <span className="mb-2 block font-medium text-stone-800">Upload foto menu</span>
+              <input
+                name="imageFile"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="block w-full text-sm text-stone-500"
+              />
+              <span className="mt-2 block text-xs text-stone-500">
+                Opsional. Format JPG, PNG, atau WEBP dengan ukuran maksimal 4MB.
+              </span>
+            </label>
             <textarea
               name="description"
               placeholder="Deskripsi menu"
@@ -94,14 +105,25 @@ export default async function MenuManagementPage() {
               {category.menuItems.map((item) => (
                 <article key={item.id} className="rounded-3xl border border-stone-200 p-4">
                   <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-stone-950">{item.name}</h3>
-                      <p className="mt-1 text-sm text-stone-500">
-                        {item.description ?? "Tanpa deskripsi."}
-                      </p>
-                      <p className="mt-3 font-semibold text-orange-600">
-                        {formatCurrency(item.price)}
-                      </p>
+                    <div className="flex items-start gap-4">
+                      <div
+                        className="h-24 w-24 shrink-0 rounded-3xl bg-gradient-to-br from-orange-200 via-orange-100 to-stone-100 bg-cover bg-center"
+                        style={item.imageUrl ? { backgroundImage: `url(${item.imageUrl})` } : undefined}
+                      />
+                      <div>
+                        <h3 className="text-lg font-semibold text-stone-950">{item.name}</h3>
+                        <p className="mt-1 text-sm text-stone-500">
+                          {item.description ?? "Tanpa deskripsi."}
+                        </p>
+                        <p className="mt-3 font-semibold text-orange-600">
+                          {formatCurrency(item.price)}
+                        </p>
+                        {item.imageUrl ? (
+                          <p className="mt-2 text-xs text-stone-400">Foto tampil di halaman customer.</p>
+                        ) : (
+                          <p className="mt-2 text-xs text-stone-400">Belum ada foto menu.</p>
+                        )}
+                      </div>
                     </div>
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${

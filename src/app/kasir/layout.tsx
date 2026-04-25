@@ -1,7 +1,7 @@
-import Link from "next/link";
-
 import { logoutCashier } from "@/app/actions";
+import { CashierNav } from "@/components/cashier-nav";
 import { requireCashier } from "@/lib/auth";
+import { getCashierNavCounts } from "@/lib/data";
 
 const navItems = [
   { href: "/kasir", label: "Dashboard" },
@@ -16,7 +16,16 @@ export default async function CashierLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const cashier = await requireCashier();
+  const [cashier, navCounts] = await Promise.all([requireCashier(), getCashierNavCounts()]);
+  const navItemsWithBadges = navItems.map((item) => ({
+    ...item,
+    badge:
+      item.href === "/kasir/pesanan"
+        ? navCounts.needsAttentionCount
+        : item.href === "/kasir"
+          ? navCounts.activeOrderCount
+          : undefined,
+  }));
 
   return (
     <div className="dashboard-shell min-h-screen">
@@ -38,17 +47,7 @@ export default async function CashierLayout({
           </div>
         </div>
         <div className="mx-auto max-w-7xl px-4 pb-4 sm:px-6 md:px-8 md:pb-5">
-          <nav className="-mx-4 flex gap-3 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="shrink-0 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-orange-300 hover:text-orange-600"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <CashierNav items={navItemsWithBadges} />
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 md:px-8 md:py-8">{children}</main>
