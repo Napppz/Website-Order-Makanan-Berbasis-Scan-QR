@@ -6,7 +6,7 @@ export default async function CreateManualOrderPage() {
   const [tables, menuItems] = await Promise.all([
     prisma.table.findMany({ orderBy: { name: "asc" } }),
     prisma.menuItem.findMany({
-      where: { isAvailable: true },
+      where: { isAvailable: true, stock: { gt: 0 } },
       orderBy: { name: "asc" },
       include: { category: true },
     }),
@@ -25,6 +25,7 @@ export default async function CreateManualOrderPage() {
           id: item.id,
           name: item.name,
           price: item.price,
+          stock: item.stock,
           categoryName: item.category.name,
         }))}
       />

@@ -115,6 +115,26 @@ function parseCart(rawCart: string) {
   return z.array(lineItemSchema).min(1, "Keranjang tidak boleh kosong.").parse(parsed);
 }
 
+function getRequestedQuantities(items: z.infer<typeof lineItemSchema>[]) {
+  const quantities = new Map<string, number>();
+
+  for (const item of items) {
+    quantities.set(
+      item.menuItemId,
+      (quantities.get(item.menuItemId) ?? 0) + item.quantity,
+    );
+  }
+
+  return quantities;
+}
+
+function getStockShortage(
+  menuItems: { id: string; name: string; stock: number }[],
+  quantities: Map<string, number>,
+) {
+  return menuItems.find((item) => item.stock < (quantities.get(item.id) ?? 0));
+}
+
 export async function loginCashier(_: { error?: string } | undefined, formData: FormData) {
   const parsed = loginSchema.safeParse({
     identity: formData.get("identity"),
@@ -185,6 +205,7 @@ export async function createMenuItemAction(formData: FormData) {
     const name = String(formData.get("name") ?? "").trim();
     const categoryId = String(formData.get("categoryId") ?? "");
     const price = Number(formData.get("price") ?? 0);
+    const stock = Math.max(0, Number(formData.get("stock") ?? 0) || 0);
 
     if (!name || !categoryId || price <= 0) {
       return;
@@ -200,6 +221,7 @@ export async function createMenuItemAction(formData: FormData) {
         slug: `${slugify(name)}-${randomUUID().slice(0, 5)}`,
         description: String(formData.get("description") ?? "").trim() || null,
         price,
+        stock,
         imageUrl,
         categoryId,
         isAvailable: formData.get("isAvailable") === "on",
@@ -213,6 +235,57 @@ export async function createMenuItemAction(formData: FormData) {
     console.error("Gagal menyimpan foto menu", error);
     throw error;
   }
+}
+
+export async function updateMenuItemAction(formData: FormData) {
+  await requireCashier();
+
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const categoryId = String(formData.get("categoryId") ?? "");
+  const price = Number(formData.get("price") ?? 0);
+  const stock = Math.max(0, Number(formData.get("stock") ?? 0) || 0);
+
+  if (!id || !name || !categoryId || price <= 0) {
+    return;
+  }
+
+  await prisma.menuItem.update({
+    where: { id },
+    data: {
+      name,
+      description: String(formData.get("description") ?? "").trim() || null,
+      price,
+      stock,
+      categoryId,
+      isAvailable: formData.get("isAvailable") === "on" && stock > 0,
+    },
+  });
+
+  revalidatePath("/kasir/menu");
+  revalidatePath("/");
+}
+
+export async function updateMenuStockAction(formData: FormData) {
+  await requireCashier();
+
+  const id = String(formData.get("id") ?? "");
+  const stock = Math.max(0, Number(formData.get("stock") ?? 0) || 0);
+
+  if (!id) {
+    return;
+  }
+
+  await prisma.menuItem.update({
+    where: { id },
+    data: {
+      stock,
+      isAvailable: stock > 0,
+    },
+  });
+
+  revalidatePath("/kasir/menu");
+  revalidatePath("/");
 }
 
 export async function toggleMenuAvailabilityAction(formData: FormData) {
@@ -326,6 +399,15 @@ export async function submitCustomerOrder(formData: FormData) {
       return { success: false, error: `${unavailable.name} sedang tidak tersedia.` };
     }
 
+    const requestedQuantities = getRequestedQuantities(items);
+    const stockShortage = getStockShortage(menuItems, requestedQuantities);
+    if (stockShortage) {
+      return {
+        success: false,
+        error: `Stok ${stockShortage.name} tersisa ${stockShortage.stock}.`,
+      };
+    }
+
     const menuMap = new Map(menuItems.map((item) => [item.id, item]));
     const totalAmount = items.reduce((sum, item) => {
       const menuItem = menuMap.get(item.menuItemId);
@@ -344,40 +426,60 @@ export async function submitCustomerOrder(formData: FormData) {
       return { success: false, error: "Bukti bayar QRIS wajib diunggah." };
     }
 
-    const order = await prisma.order.create({
-      data: {
-        orderNumber,
-        customerName,
-        tableId,
-        notes: notes || null,
-        paymentMethod: paymentMethod as PaymentMethod,
-        status:
-          paymentMethod === PaymentMethod.qris_upload
-            ? OrderStatus.payment_submitted
-            : OrderStatus.pending_payment,
-        totalAmount,
-        items: {
-          create: items.map((item) => {
-            const menuItem = menuMap.get(item.menuItemId)!;
+    const order = await prisma.$transaction(async (tx) => {
+      for (const [menuItemId, quantity] of requestedQuantities) {
+        const updated = await tx.menuItem.updateMany({
+          where: {
+            id: menuItemId,
+            isAvailable: true,
+            stock: { gte: quantity },
+          },
+          data: { stock: { decrement: quantity } },
+        });
 
-            return {
-              menuItemId: menuItem.id,
-              quantity: item.quantity,
-              note: item.note || null,
-              unitPrice: menuItem.price,
-              subtotal: menuItem.price * item.quantity,
-            };
-          }),
+        if (updated.count !== 1) {
+          const menuItem = menuMap.get(menuItemId);
+          throw new Error(
+            `Stok ${menuItem?.name ?? "menu"} tidak mencukupi. Mohon refresh halaman.`,
+          );
+        }
+      }
+
+      return tx.order.create({
+        data: {
+          orderNumber,
+          customerName,
+          tableId,
+          notes: notes || null,
+          paymentMethod: paymentMethod as PaymentMethod,
+          status:
+            paymentMethod === PaymentMethod.qris_upload
+              ? OrderStatus.payment_submitted
+              : OrderStatus.pending_payment,
+          totalAmount,
+          items: {
+            create: items.map((item) => {
+              const menuItem = menuMap.get(item.menuItemId)!;
+
+              return {
+                menuItemId: menuItem.id,
+                quantity: item.quantity,
+                note: item.note || null,
+                unitPrice: menuItem.price,
+                subtotal: menuItem.price * item.quantity,
+              };
+            }),
+          },
+          paymentProof: imageUrl
+            ? {
+                create: {
+                  imageUrl,
+                  status: PaymentProofStatus.submitted,
+                },
+              }
+            : undefined,
         },
-        paymentProof: imageUrl
-          ? {
-              create: {
-                imageUrl,
-                status: PaymentProofStatus.submitted,
-              },
-            }
-          : undefined,
-      },
+      });
     });
 
     revalidatePath(`/menu/${table.code}`);
@@ -396,58 +498,103 @@ export async function submitCustomerOrder(formData: FormData) {
 export async function createManualOrderAction(formData: FormData) {
   await requireCashier();
 
-  const customerName = String(formData.get("customerName") ?? "").trim();
-  const tableId = String(formData.get("tableId") ?? "");
-  const notes = String(formData.get("notes") ?? "").trim();
-  const items = parseCart(String(formData.get("cart") ?? "[]"));
-  const paymentMethod =
-    formData.get("paymentMethod") === PaymentMethod.qris_upload
-      ? PaymentMethod.qris_upload
-      : PaymentMethod.cashier;
+  try {
+    const customerName = String(formData.get("customerName") ?? "").trim();
+    const tableId = String(formData.get("tableId") ?? "");
+    const notes = String(formData.get("notes") ?? "").trim();
+    const items = parseCart(String(formData.get("cart") ?? "[]"));
+    const paymentMethod =
+      formData.get("paymentMethod") === PaymentMethod.qris_upload
+        ? PaymentMethod.qris_upload
+        : PaymentMethod.cashier;
 
-  const menuItems = await prisma.menuItem.findMany({
-    where: { id: { in: items.map((item) => item.menuItemId) } },
-  });
+    const menuItems = await prisma.menuItem.findMany({
+      where: { id: { in: items.map((item) => item.menuItemId) } },
+    });
 
-  if (!customerName || !tableId || menuItems.length !== items.length) {
-    return { success: false, error: "Data pesanan manual tidak lengkap." };
+    if (!customerName || !tableId || menuItems.length !== items.length) {
+      return { success: false, error: "Data pesanan manual tidak lengkap." };
+    }
+
+    const unavailable = menuItems.find((item) => !item.isAvailable);
+    if (unavailable) {
+      return { success: false, error: `${unavailable.name} sedang tidak tersedia.` };
+    }
+
+    const requestedQuantities = getRequestedQuantities(items);
+    const stockShortage = getStockShortage(menuItems, requestedQuantities);
+    if (stockShortage) {
+      return {
+        success: false,
+        error: `Stok ${stockShortage.name} tersisa ${stockShortage.stock}.`,
+      };
+    }
+
+    const menuMap = new Map(menuItems.map((item) => [item.id, item]));
+    const totalAmount = items.reduce((sum, item) => {
+      const menuItem = menuMap.get(item.menuItemId);
+      return sum + (menuItem?.price ?? 0) * item.quantity;
+    }, 0);
+    const orderNumber = await ensureUniqueOrderNumber();
+
+    const order = await prisma.$transaction(async (tx) => {
+      for (const [menuItemId, quantity] of requestedQuantities) {
+        const updated = await tx.menuItem.updateMany({
+          where: {
+            id: menuItemId,
+            isAvailable: true,
+            stock: { gte: quantity },
+          },
+          data: { stock: { decrement: quantity } },
+        });
+
+        if (updated.count !== 1) {
+          const menuItem = menuMap.get(menuItemId);
+          throw new Error(
+            `Stok ${menuItem?.name ?? "menu"} tidak mencukupi. Mohon refresh halaman.`,
+          );
+        }
+      }
+
+      return tx.order.create({
+        data: {
+          orderNumber,
+          customerName,
+          tableId,
+          notes: notes || null,
+          paymentMethod,
+          status:
+            paymentMethod === PaymentMethod.cashier
+              ? OrderStatus.pending_payment
+              : OrderStatus.payment_submitted,
+          totalAmount,
+          items: {
+            create: items.map((item) => {
+              const menuItem = menuMap.get(item.menuItemId)!;
+              return {
+                menuItemId: menuItem.id,
+                quantity: item.quantity,
+                note: item.note || null,
+                unitPrice: menuItem.price,
+                subtotal: menuItem.price * item.quantity,
+              };
+            }),
+          },
+        },
+      });
+    });
+
+    revalidatePath("/kasir");
+    revalidatePath("/kasir/menu");
+    revalidatePath("/kasir/pesanan");
+    revalidatePath("/");
+    return { success: true, orderNumber: order.orderNumber };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Pesanan manual gagal dibuat.";
+
+    return { success: false, error: message };
   }
-
-  const totalAmount = items.reduce((sum, item) => {
-    const menuItem = menuItems.find((menu) => menu.id === item.menuItemId);
-    return sum + (menuItem?.price ?? 0) * item.quantity;
-  }, 0);
-
-  const order = await prisma.order.create({
-    data: {
-      orderNumber: await ensureUniqueOrderNumber(),
-      customerName,
-      tableId,
-      notes: notes || null,
-      paymentMethod,
-      status:
-        paymentMethod === PaymentMethod.cashier
-          ? OrderStatus.pending_payment
-          : OrderStatus.payment_submitted,
-      totalAmount,
-      items: {
-        create: items.map((item) => {
-          const menuItem = menuItems.find((menu) => menu.id === item.menuItemId)!;
-          return {
-            menuItemId: menuItem.id,
-            quantity: item.quantity,
-            note: item.note || null,
-            unitPrice: menuItem.price,
-            subtotal: menuItem.price * item.quantity,
-          };
-        }),
-      },
-    },
-  });
-
-  revalidatePath("/kasir");
-  revalidatePath("/kasir/pesanan");
-  return { success: true, orderNumber: order.orderNumber };
 }
 
 export async function updateOrderStatusAction(formData: FormData) {

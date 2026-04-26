@@ -19,7 +19,10 @@ export default async function HomePage() {
         : "Aplikasi belum bisa membaca database production.";
   }
 
-  const highlightItems = categories.flatMap((category) => category.menuItems).slice(0, 3);
+  const highlightItems = categories
+    .flatMap((category) => category.menuItems)
+    .filter((item) => item.isAvailable && item.stock > 0)
+    .slice(0, 3);
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 md:px-8 md:py-8 xl:px-10 xl:py-10">

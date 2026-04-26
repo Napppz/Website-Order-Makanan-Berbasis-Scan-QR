@@ -17,6 +17,7 @@ type MenuOption = {
   id: string;
   name: string;
   price: number;
+  stock: number;
   categoryName: string;
 };
 
@@ -53,10 +54,19 @@ export function ManualOrderClient({
 
   function updateQuantity(menuItemId: string, delta: number) {
     setCart((current) => {
+      const menuItem = menuItems.find((menu) => menu.id === menuItemId);
       const existing = current.find((item) => item.menuItemId === menuItemId);
 
       if (!existing && delta > 0) {
+        if (!menuItem?.stock) {
+          return current;
+        }
+
         return [...current, { menuItemId, quantity: 1, note: "" }];
+      }
+
+      if (existing && delta > 0 && menuItem && existing.quantity >= menuItem.stock) {
+        return current;
       }
 
       return current
@@ -185,6 +195,9 @@ export function ManualOrderClient({
                     <h3 className="mt-1 font-semibold text-stone-950">{menuItem.name}</h3>
                     <p className="text-sm font-medium text-orange-600">
                       {formatCurrency(menuItem.price)}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                      Stok {menuItem.stock}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 self-end sm:self-auto">

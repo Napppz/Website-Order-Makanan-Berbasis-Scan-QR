@@ -64,6 +64,7 @@ model MenuItem {
   slug        String      @unique
   description String?
   price       Int
+  stock       Int         @default(0)
   imageUrl    String?
   isAvailable Boolean     @default(true)
   createdAt   DateTime    @default(now())

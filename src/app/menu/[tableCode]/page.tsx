@@ -54,7 +54,9 @@ export default async function CustomerMenuPage({
             <p className="mt-1 text-xl font-semibold">
               {categories.reduce(
                 (sum, category) =>
-                  sum + category.menuItems.filter((item) => item.isAvailable).length,
+                  sum +
+                  category.menuItems.filter((item) => item.isAvailable && item.stock > 0)
+                    .length,
                 0,
               )}
             </p>

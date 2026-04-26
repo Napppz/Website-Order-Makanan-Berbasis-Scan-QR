@@ -1,7 +1,14 @@
 import { PrismaClient, PaymentMethod, OrderStatus } from "@prisma/client";
+import { neonConfig } from "@neondatabase/serverless";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import bcrypt from "bcryptjs";
+import ws from "ws";
 
-const prisma = new PrismaClient();
+neonConfig.webSocketConstructor = ws;
+
+const prisma = new PrismaClient({
+  adapter: new PrismaNeon({ connectionString: process.env.DATABASE_URL }),
+});
 
 function slugify(value) {
   return value
@@ -38,16 +45,19 @@ async function main() {
         {
           name: "Nasi Goreng Spesial",
           price: 32000,
+          stock: 40,
           description: "Nasi goreng dengan telur, ayam, dan acar.",
         },
         {
           name: "Mie Goreng Jawa",
           price: 28000,
+          stock: 35,
           description: "Mie goreng manis gurih dengan sayuran segar.",
         },
         {
           name: "Ayam Bakar Sambal Matah",
           price: 38000,
+          stock: 30,
           description: "Ayam bakar juicy dengan sambal matah segar.",
         },
       ],
@@ -58,16 +68,19 @@ async function main() {
         {
           name: "Es Teh Manis",
           price: 10000,
+          stock: 80,
           description: "Teh manis dingin favorit semua meja.",
         },
         {
           name: "Es Jeruk",
           price: 14000,
+          stock: 60,
           description: "Jeruk segar dingin dengan rasa asam manis.",
         },
         {
           name: "Kopi Susu Gula Aren",
           price: 22000,
+          stock: 45,
           description: "Kopi creamy dengan gula aren.",
         },
       ],
@@ -78,11 +91,13 @@ async function main() {
         {
           name: "Kentang Goreng",
           price: 18000,
+          stock: 50,
           description: "Kentang goreng renyah dengan saus sambal.",
         },
         {
           name: "Pisang Goreng Cokelat",
           price: 17000,
+          stock: 35,
           description: "Pisang goreng hangat dengan topping cokelat.",
         },
       ],
@@ -107,6 +122,7 @@ async function main() {
           name: item.name,
           description: item.description,
           price: item.price,
+          stock: item.stock,
           categoryId: savedCategory.id,
           isAvailable: true,
         },
@@ -115,6 +131,7 @@ async function main() {
           slug: slugify(item.name),
           description: item.description,
           price: item.price,
+          stock: item.stock,
           categoryId: savedCategory.id,
           isAvailable: true,
         },

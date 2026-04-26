@@ -15,6 +15,7 @@ type MenuGroup = {
     name: string;
     description: string | null;
     price: number;
+    stock: number;
     imageUrl: string | null;
     isAvailable: boolean;
   }[];
@@ -61,7 +62,7 @@ export function CustomerOrderClient({
       .map((category) => ({
         ...category,
         menuItems: category.menuItems.filter((menuItem) => {
-          if (!menuItem.isAvailable) {
+          if (!menuItem.isAvailable || menuItem.stock <= 0) {
             return false;
           }
 
@@ -84,7 +85,11 @@ export function CustomerOrderClient({
   }, [categories, deferredSearch, selectedCategory]);
 
   const featuredItems = useMemo(
-    () => categories.flatMap((category) => category.menuItems).filter((item) => item.isAvailable).slice(0, 4),
+    () =>
+      categories
+        .flatMap((category) => category.menuItems)
+        .filter((item) => item.isAvailable && item.stock > 0)
+        .slice(0, 4),
     [categories],
   );
   const cartQuantity = useMemo(
@@ -93,13 +98,17 @@ export function CustomerOrderClient({
   );
 
   function updateCart(
-    menuItem: { id: string; name: string; price: number },
+    menuItem: { id: string; name: string; price: number; stock: number },
     delta: number,
   ) {
     setCart((current) => {
       const existing = current.find((item) => item.menuItemId === menuItem.id);
 
       if (!existing && delta > 0) {
+        if (menuItem.stock <= 0) {
+          return current;
+        }
+
         return [
           ...current,
           {
@@ -110,6 +119,10 @@ export function CustomerOrderClient({
             note: "",
           },
         ];
+      }
+
+      if (existing && delta > 0 && existing.quantity >= menuItem.stock) {
+        return current;
       }
 
       return current
@@ -317,7 +330,7 @@ export function CustomerOrderClient({
                           </div>
                           <div className="flex items-center justify-between gap-3">
                             <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-600">
-                              Tersedia sekarang
+                              Stok {menuItem.stock}
                             </p>
                             <div className="flex items-center gap-2">
                               <button

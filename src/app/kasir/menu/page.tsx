@@ -3,6 +3,8 @@ import {
   createMenuItemAction,
   deleteMenuItemAction,
   toggleMenuAvailabilityAction,
+  updateMenuItemAction,
+  updateMenuStockAction,
 } from "@/app/actions";
 import { getCategoriesWithItems } from "@/lib/data";
 import { formatCurrency } from "@/lib/utils";
@@ -60,6 +62,13 @@ export default async function MenuManagementPage() {
               name="price"
               type="number"
               placeholder="Harga"
+              className="rounded-2xl border border-stone-300 px-4 py-3 outline-none focus:border-orange-500"
+            />
+            <input
+              name="stock"
+              type="number"
+              min="0"
+              placeholder="Stok awal"
               className="rounded-2xl border border-stone-300 px-4 py-3 outline-none focus:border-orange-500"
             />
             <label className="rounded-2xl border border-dashed border-stone-300 px-4 py-3 text-sm text-stone-600">
@@ -127,13 +136,42 @@ export default async function MenuManagementPage() {
                     </div>
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        item.isAvailable
+                        item.isAvailable && item.stock > 0
                           ? "bg-emerald-100 text-emerald-800"
-                          : "bg-stone-200 text-stone-700"
+                          : item.stock <= 0
+                            ? "bg-rose-100 text-rose-800"
+                            : "bg-stone-200 text-stone-700"
                       }`}
                     >
-                      {item.isAvailable ? "Tersedia" : "Nonaktif"}
+                      {item.isAvailable && item.stock > 0
+                        ? "Tersedia"
+                        : item.stock <= 0
+                          ? "Stok habis"
+                          : "Nonaktif"}
                     </span>
+                  </div>
+                  <div className="mt-4 grid gap-3 border-t border-stone-200 pt-4 sm:grid-cols-[1fr_auto] sm:items-end">
+                    <form action={updateMenuStockAction} className="flex gap-2">
+                      <input type="hidden" name="id" value={item.id} />
+                      <label className="min-w-0 flex-1">
+                        <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">
+                          Stok
+                        </span>
+                        <input
+                          name="stock"
+                          type="number"
+                          min="0"
+                          defaultValue={item.stock}
+                          className="w-full rounded-2xl border border-stone-300 px-4 py-2 text-sm outline-none focus:border-orange-500"
+                        />
+                      </label>
+                      <button className="self-end rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white">
+                        Update stok
+                      </button>
+                    </form>
+                    <p className="text-sm font-semibold text-stone-600 sm:text-right">
+                      Sisa {item.stock} porsi
+                    </p>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-3">
                     <form action={toggleMenuAvailabilityAction}>
@@ -150,6 +188,68 @@ export default async function MenuManagementPage() {
                       </button>
                     </form>
                   </div>
+                  <details className="mt-4 border-t border-stone-200 pt-4">
+                    <summary className="cursor-pointer text-sm font-semibold text-stone-800">
+                      Edit detail menu
+                    </summary>
+                    <form action={updateMenuItemAction} className="mt-4 grid gap-3 md:grid-cols-2">
+                      <input type="hidden" name="id" value={item.id} />
+                      <input
+                        name="name"
+                        defaultValue={item.name}
+                        className="rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none focus:border-orange-500"
+                        placeholder="Nama menu"
+                      />
+                      <select
+                        name="categoryId"
+                        defaultValue={item.categoryId}
+                        className="rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none focus:border-orange-500"
+                      >
+                        {categories.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        name="price"
+                        type="number"
+                        min="1"
+                        defaultValue={item.price}
+                        className="rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none focus:border-orange-500"
+                        placeholder="Harga"
+                      />
+                      <input
+                        name="stock"
+                        type="number"
+                        min="0"
+                        defaultValue={item.stock}
+                        className="rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none focus:border-orange-500"
+                        placeholder="Stok"
+                      />
+                      <textarea
+                        name="description"
+                        defaultValue={item.description ?? ""}
+                        className="min-h-24 rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none focus:border-orange-500 md:col-span-2"
+                        placeholder="Deskripsi menu"
+                      />
+                      <label className="flex items-center gap-3 rounded-2xl border border-stone-300 px-4 py-3">
+                        <input
+                          name="isAvailable"
+                          type="checkbox"
+                          defaultChecked={item.isAvailable}
+                        />
+                        <span className="text-sm font-medium text-stone-700">
+                          Tersedia untuk dipesan
+                        </span>
+                      </label>
+                      <div className="md:col-span-2">
+                        <button className="rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white">
+                          Simpan perubahan
+                        </button>
+                      </div>
+                    </form>
+                  </details>
                 </article>
               ))}
             </div>
