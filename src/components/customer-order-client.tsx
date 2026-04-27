@@ -5,7 +5,11 @@ import type { CSSProperties } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { useRouter } from "next/navigation";
 
-import { saveCustomerCart, type CustomerCartEntry } from "@/lib/customer-cart";
+import {
+  loadCustomerCart,
+  saveCustomerCart,
+  type CustomerCartEntry,
+} from "@/lib/customer-cart";
 import { cn, formatCurrency } from "@/lib/utils";
 
 type MenuGroup = {
