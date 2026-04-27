@@ -6,6 +6,7 @@ import {
   updateMenuItemAction,
   updateMenuStockAction,
 } from "@/app/actions";
+import { MenuImagePicker } from "@/components/menu-image-picker";
 import { getCategoriesWithItems } from "@/lib/data";
 import { formatCurrency } from "@/lib/utils";
 
@@ -36,6 +37,16 @@ export default async function MenuManagementPage({
                 "Menu yang sudah pernah dipakai dalam pesanan tidak bisa dihapus permanen karena masih dibutuhkan untuk riwayat transaksi. Sistem menonaktifkan menu tersebut dan mengosongkan stoknya sebagai gantinya.",
             }
           : null;
+  const totalMenu = categories.reduce((sum, category) => sum + category.menuItems.length, 0);
+  const menuWithPhoto = categories.reduce(
+    (sum, category) => sum + category.menuItems.filter((item) => Boolean(item.imageUrl)).length,
+    0,
+  );
+  const availableMenu = categories.reduce(
+    (sum, category) =>
+      sum + category.menuItems.filter((item) => item.isAvailable && item.stock > 0).length,
+    0,
+  );
 
   return (
     <div className="space-y-8">
@@ -46,6 +57,21 @@ export default async function MenuManagementPage({
           {noticeConfig.message}
         </section>
       ) : null}
+
+      <section className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-stone-200 sm:rounded-[28px]">
+          <p className="text-sm text-stone-500">Total menu</p>
+          <p className="mt-2 text-3xl font-bold text-stone-950">{totalMenu}</p>
+        </div>
+        <div className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-stone-200 sm:rounded-[28px]">
+          <p className="text-sm text-stone-500">Menu dengan foto</p>
+          <p className="mt-2 text-3xl font-bold text-orange-600">{menuWithPhoto}</p>
+        </div>
+        <div className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-stone-200 sm:rounded-[28px]">
+          <p className="text-sm text-stone-500">Siap dipesan</p>
+          <p className="mt-2 text-3xl font-bold text-emerald-600">{availableMenu}</p>
+        </div>
+      </section>
 
       <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <div className="rounded-[32px] bg-white p-6 shadow-sm ring-1 ring-stone-200">
@@ -78,11 +104,11 @@ export default async function MenuManagementPage({
             <input
               name="name"
               placeholder="Nama menu"
-              className="rounded-2xl border border-stone-300 px-4 py-3 outline-none focus:border-orange-500"
+              className="rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 outline-none focus:border-orange-500"
             />
             <select
               name="categoryId"
-              className="rounded-2xl border border-stone-300 px-4 py-3 outline-none focus:border-orange-500"
+              className="rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 outline-none focus:border-orange-500"
             >
               <option value="">Pilih kategori</option>
               {categories.map((category) => (
@@ -95,33 +121,28 @@ export default async function MenuManagementPage({
               name="price"
               type="number"
               placeholder="Harga"
-              className="rounded-2xl border border-stone-300 px-4 py-3 outline-none focus:border-orange-500"
+              className="rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 outline-none focus:border-orange-500"
             />
             <input
               name="stock"
               type="number"
               min="0"
               placeholder="Stok awal"
-              className="rounded-2xl border border-stone-300 px-4 py-3 outline-none focus:border-orange-500"
+              className="rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 outline-none focus:border-orange-500"
             />
-            <label className="rounded-2xl border border-dashed border-stone-300 px-4 py-3 text-sm text-stone-600">
-              <span className="mb-2 block font-medium text-stone-800">Upload foto menu</span>
-              <input
-                name="imageFile"
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="block w-full text-sm text-stone-500"
+            <div className="md:col-span-2">
+              <MenuImagePicker
+                inputName="imageFile"
+                label="Upload foto menu"
+                helperText="Opsional. Format JPG, PNG, atau WEBP dengan ukuran maksimal 4MB."
               />
-              <span className="mt-2 block text-xs text-stone-500">
-                Opsional. Format JPG, PNG, atau WEBP dengan ukuran maksimal 4MB.
-              </span>
-            </label>
+            </div>
             <textarea
               name="description"
               placeholder="Deskripsi menu"
-              className="min-h-24 rounded-2xl border border-stone-300 px-4 py-3 outline-none focus:border-orange-500 md:col-span-2"
+              className="min-h-24 rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 outline-none focus:border-orange-500 md:col-span-2"
             />
-            <label className="flex items-center gap-3 rounded-2xl border border-stone-300 px-4 py-3">
+            <label className="flex items-center gap-3 rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 md:col-span-2">
               <input name="isAvailable" type="checkbox" defaultChecked />
               <span className="text-sm font-medium text-stone-700">Langsung tersedia untuk dipesan</span>
             </label>
@@ -225,18 +246,22 @@ export default async function MenuManagementPage({
                     <summary className="cursor-pointer text-sm font-semibold text-stone-800">
                       Edit detail menu
                     </summary>
-                    <form action={updateMenuItemAction} className="mt-4 grid gap-3 md:grid-cols-2">
+                    <form
+                      action={updateMenuItemAction}
+                      encType="multipart/form-data"
+                      className="mt-4 grid gap-3 md:grid-cols-2"
+                    >
                       <input type="hidden" name="id" value={item.id} />
                       <input
                         name="name"
                         defaultValue={item.name}
-                        className="rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none focus:border-orange-500"
+                        className="rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none focus:border-orange-500"
                         placeholder="Nama menu"
                       />
                       <select
                         name="categoryId"
                         defaultValue={item.categoryId}
-                        className="rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none focus:border-orange-500"
+                        className="rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none focus:border-orange-500"
                       >
                         {categories.map((option) => (
                           <option key={option.id} value={option.id}>
@@ -249,7 +274,7 @@ export default async function MenuManagementPage({
                         type="number"
                         min="1"
                         defaultValue={item.price}
-                        className="rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none focus:border-orange-500"
+                        className="rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none focus:border-orange-500"
                         placeholder="Harga"
                       />
                       <input
@@ -257,16 +282,24 @@ export default async function MenuManagementPage({
                         type="number"
                         min="0"
                         defaultValue={item.stock}
-                        className="rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none focus:border-orange-500"
+                        className="rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none focus:border-orange-500"
                         placeholder="Stok"
                       />
+                      <div className="md:col-span-2">
+                        <MenuImagePicker
+                          inputName="imageFile"
+                          label="Ganti foto menu"
+                          helperText="Kosongkan jika ingin memakai foto yang sekarang. File baru akan menggantikan foto lama di Cloudflare R2."
+                          currentImageUrl={item.imageUrl}
+                        />
+                      </div>
                       <textarea
                         name="description"
                         defaultValue={item.description ?? ""}
-                        className="min-h-24 rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none focus:border-orange-500 md:col-span-2"
+                        className="min-h-24 rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none focus:border-orange-500 md:col-span-2"
                         placeholder="Deskripsi menu"
                       />
-                      <label className="flex items-center gap-3 rounded-2xl border border-stone-300 px-4 py-3">
+                      <label className="flex items-center gap-3 rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 md:col-span-2">
                         <input
                           name="isAvailable"
                           type="checkbox"

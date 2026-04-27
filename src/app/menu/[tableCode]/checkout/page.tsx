@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { CustomerFlowSteps } from "@/components/customer-flow-steps";
 import { CustomerCheckoutClient } from "@/components/customer-checkout-client";
 import { getPrisma } from "@/lib/prisma";
 
@@ -47,6 +48,25 @@ export default async function CustomerCheckoutPage({
             Kembali ke menu
           </Link>
         </div>
+        <CustomerFlowSteps
+          steps={[
+            {
+              title: "Pilih menu",
+              description: "Item sudah dipilih dan tersimpan di keranjang.",
+              state: "complete",
+            },
+            {
+              title: "Checkout",
+              description: "Konfirmasi data pemesan dan metode bayar.",
+              state: "current",
+            },
+            {
+              title: "Status pesanan",
+              description: "Lihat update pembayaran dan proses order.",
+              state: "upcoming",
+            },
+          ]}
+        />
       </section>
 
       <CustomerCheckoutClient

@@ -277,17 +277,46 @@ export async function updateMenuItemAction(formData: FormData) {
     return;
   }
 
-  await prisma.menuItem.update({
+  const existing = await prisma.menuItem.findUnique({
     where: { id },
-    data: {
-      name,
-      description: String(formData.get("description") ?? "").trim() || null,
-      price,
-      stock,
-      categoryId,
-      isAvailable: formData.get("isAvailable") === "on" && stock > 0,
-    },
+    select: { imageUrl: true },
   });
+
+  let nextImageUrl = existing?.imageUrl ?? null;
+  const imageFile = formData.get("imageFile");
+
+  if (imageFile instanceof File && imageFile.size > 0) {
+    nextImageUrl = await saveMenuImageFile(imageFile);
+  }
+
+  try {
+    await prisma.menuItem.update({
+      where: { id },
+      data: {
+        name,
+        description: String(formData.get("description") ?? "").trim() || null,
+        price,
+        stock,
+        imageUrl: nextImageUrl,
+        categoryId,
+        isAvailable: formData.get("isAvailable") === "on" && stock > 0,
+      },
+    });
+
+    if (
+      existing?.imageUrl &&
+      nextImageUrl &&
+      existing.imageUrl !== nextImageUrl
+    ) {
+      await deleteMenuImageFile(existing.imageUrl);
+    }
+  } catch (error) {
+    if (nextImageUrl && nextImageUrl !== existing?.imageUrl) {
+      await deleteMenuImageFile(nextImageUrl);
+    }
+
+    throw error;
+  }
 
   revalidatePath("/kasir/menu");
   revalidatePath("/");

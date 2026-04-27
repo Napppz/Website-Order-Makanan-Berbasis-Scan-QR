@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { PaymentMethod } from "@prisma/client";
 
 import { redirectToMidtransPaymentAction } from "@/app/actions";
+import { CustomerFlowSteps } from "@/components/customer-flow-steps";
+import { OrderStatusTimeline } from "@/components/order-status-timeline";
 import { StatusBadge } from "@/components/status-badge";
 import { orderStatusLabels, paymentMethodLabels, paymentProofLabels } from "@/lib/constants";
 import { getPrisma } from "@/lib/prisma";
@@ -62,6 +64,31 @@ export default async function OrderStatusPage({
             </p>
           </div>
         </div>
+
+        <CustomerFlowSteps
+          steps={[
+            {
+              title: "Pilih menu",
+              description: "Pesanan sudah dibuat dari meja Anda.",
+              state: "complete",
+            },
+            {
+              title: "Checkout",
+              description:
+                order.status === "cancelled"
+                  ? "Checkout sudah selesai, tetapi order dibatalkan."
+                  : "Checkout selesai dan menunggu progres berikutnya.",
+              state: "complete",
+            },
+            {
+              title: "Status pesanan",
+              description: "Pantau pembayaran dan proses order di sini.",
+              state: "current",
+            },
+          ]}
+        />
+
+        <OrderStatusTimeline status={order.status} />
 
         <div className="mt-8 rounded-[24px] border border-stone-200 p-4 sm:rounded-[28px] sm:p-5">
           <h2 className="text-lg font-semibold text-stone-950">Rincian item</h2>

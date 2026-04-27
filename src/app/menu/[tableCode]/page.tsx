@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { CustomerFlowSteps } from "@/components/customer-flow-steps";
 import { CustomerOrderClient } from "@/components/customer-order-client";
 import { getPrisma } from "@/lib/prisma";
 
@@ -133,6 +134,25 @@ export default async function CustomerMenuPage({
             <p className="mt-1 text-xl font-semibold">Mudah dan cepat</p>
           </div>
         </div>
+        <CustomerFlowSteps
+          steps={[
+            {
+              title: "Pilih menu",
+              description: "Atur jumlah item dan catatan khusus.",
+              state: "current",
+            },
+            {
+              title: "Checkout",
+              description: "Isi data pemesan dan pilih metode bayar.",
+              state: "upcoming",
+            },
+            {
+              title: "Status pesanan",
+              description: "Pantau pembayaran dan proses order.",
+              state: "upcoming",
+            },
+          ]}
+        />
       </section>
 
       <CustomerOrderClient
