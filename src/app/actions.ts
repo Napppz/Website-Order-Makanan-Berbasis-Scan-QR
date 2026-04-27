@@ -1,8 +1,6 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
-import path from "node:path";
 
 import {
   OrderStatus,
@@ -79,35 +77,13 @@ async function saveMenuImageFile(file: File) {
     throw new Error("Ukuran foto menu maksimal 4MB.");
   }
 
-  const extensionMap: Record<string, string> = {
-    "image/jpeg": ".jpg",
-    "image/png": ".png",
-    "image/webp": ".webp",
-  };
-  const fileName = `menu-${randomUUID()}${extensionMap[file.type] ?? ".jpg"}`;
-  const uploadDirectory = path.join(process.cwd(), "public", "uploads");
-  const filePath = path.join(uploadDirectory, fileName);
-
-  await mkdir(uploadDirectory, { recursive: true });
-  await writeFile(filePath, Buffer.from(await file.arrayBuffer()));
-
-  return `/uploads/${fileName}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const base64 = buffer.toString("base64");
+  return `data:${file.type};base64,${base64}`;
 }
 
 async function deleteMenuImageFile(imageUrl: string | null | undefined) {
-  if (!imageUrl?.startsWith("/uploads/")) {
-    return;
-  }
-
-  const filePath = path.join(process.cwd(), "public", imageUrl.replace(/^\/+/, ""));
-
-  try {
-    await unlink(filePath);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw error;
-    }
-  }
+  void imageUrl;
 }
 
 function parseCart(rawCart: string) {
