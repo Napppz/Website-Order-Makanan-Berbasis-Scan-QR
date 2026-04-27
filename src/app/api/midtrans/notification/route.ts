@@ -4,37 +4,10 @@ import { NextResponse } from "next/server";
 
 import {
   isValidMidtransNotificationSignature,
+  resolveMidtransOrderStatus,
   type MidtransNotificationPayload,
 } from "@/lib/midtrans";
 import { getPrisma } from "@/lib/prisma";
-
-function resolveOrderStatus(payload: MidtransNotificationPayload) {
-  const transactionStatus = payload.transaction_status;
-  const fraudStatus = payload.fraud_status;
-
-  if (transactionStatus === "capture") {
-    return fraudStatus === "challenge" ? OrderStatus.pending_payment : OrderStatus.paid;
-  }
-
-  if (transactionStatus === "settlement") {
-    return OrderStatus.paid;
-  }
-
-  if (transactionStatus === "pending") {
-    return OrderStatus.pending_payment;
-  }
-
-  if (
-    transactionStatus === "cancel" ||
-    transactionStatus === "deny" ||
-    transactionStatus === "expire" ||
-    transactionStatus === "failure"
-  ) {
-    return OrderStatus.cancelled;
-  }
-
-  return null;
-}
 
 export async function POST(request: Request) {
   const payload = (await request.json()) as MidtransNotificationPayload;
@@ -48,7 +21,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Missing order id" }, { status: 400 });
   }
 
-  const nextStatus = resolveOrderStatus(payload);
+  const nextStatus = resolveMidtransOrderStatus(payload);
   if (!nextStatus) {
     return NextResponse.json({ ok: true, ignored: true });
   }

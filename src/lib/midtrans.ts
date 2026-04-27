@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 
+import { OrderStatus } from "@prisma/client";
+
 const MIDTRANS_SNAP_BASE_URL = "https://app.sandbox.midtrans.com";
+const MIDTRANS_API_BASE_URL = "https://api.sandbox.midtrans.com";
 
 type MidtransItemDetail = {
   id: string;
@@ -29,6 +32,10 @@ type MidtransNotificationPayload = {
   signature_key?: string;
   transaction_status?: string;
   fraud_status?: string;
+};
+
+type MidtransTransactionStatusResponse = MidtransNotificationPayload & {
+  transaction_id?: string;
 };
 
 function getMidtransServerKey() {
@@ -101,6 +108,59 @@ export async function createMidtransTransaction({
   }
 
   return (await response.json()) as MidtransSnapResponse;
+}
+
+export async function getMidtransTransactionStatus(orderNumber: string) {
+  const serverKey = getMidtransServerKey();
+  if (!serverKey) {
+    throw new Error("MIDTRANS_SERVER_KEY belum dikonfigurasi.");
+  }
+
+  const response = await fetch(`${MIDTRANS_API_BASE_URL}/v2/${orderNumber}/status`, {
+    method: "GET",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${serverKey}:`).toString("base64")}`,
+      Accept: "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Midtrans gagal mengambil status transaksi: ${message}`);
+  }
+
+  return (await response.json()) as MidtransTransactionStatusResponse;
+}
+
+export function resolveMidtransOrderStatus(
+  payload: Pick<MidtransNotificationPayload, "transaction_status" | "fraud_status">,
+) {
+  const transactionStatus = payload.transaction_status;
+  const fraudStatus = payload.fraud_status;
+
+  if (transactionStatus === "capture") {
+    return fraudStatus === "challenge" ? OrderStatus.pending_payment : OrderStatus.paid;
+  }
+
+  if (transactionStatus === "settlement") {
+    return OrderStatus.paid;
+  }
+
+  if (transactionStatus === "pending") {
+    return OrderStatus.pending_payment;
+  }
+
+  if (
+    transactionStatus === "cancel" ||
+    transactionStatus === "deny" ||
+    transactionStatus === "expire" ||
+    transactionStatus === "failure"
+  ) {
+    return OrderStatus.cancelled;
+  }
+
+  return null;
 }
 
 export function isValidMidtransNotificationSignature(payload: MidtransNotificationPayload) {
