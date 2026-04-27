@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PaymentMethod } from "@prisma/client";
+import { OrderStatus, PaymentMethod } from "@prisma/client";
 
 import { redirectToMidtransPaymentAction } from "@/app/actions";
 import { CustomerFlowSteps } from "@/components/customer-flow-steps";
@@ -14,38 +14,38 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 
 function getPaymentStatusCopy(
   paymentMethod: PaymentMethod,
-  status: (typeof import("@prisma/client"))["OrderStatus"],
+  status: OrderStatus,
 ) {
   if (paymentMethod === PaymentMethod.midtrans_snap) {
     switch (status) {
-      case "pending_payment":
+      case OrderStatus.pending_payment:
         return {
           title: "Pembayaran sedang menunggu konfirmasi",
           description:
             "Selesaikan pembayaran di Midtrans Sandbox. Jika Anda baru saja membayar, tunggu beberapa detik agar status ikut terbarui otomatis.",
           tone: "border-orange-200 bg-orange-50",
         };
-      case "paid":
+      case OrderStatus.paid:
         return {
           title: "Pembayaran berhasil dikonfirmasi",
           description:
             "Dana sudah terverifikasi. Pesanan Anda tinggal menunggu diproses oleh kasir dan dapur.",
           tone: "border-emerald-200 bg-emerald-50",
         };
-      case "processing":
+      case OrderStatus.processing:
         return {
           title: "Pembayaran berhasil, pesanan sedang diproses",
           description:
             "Kasir sudah menerima pembayaran dan dapur sedang menyiapkan pesanan Anda.",
           tone: "border-sky-200 bg-sky-50",
         };
-      case "completed":
+      case OrderStatus.completed:
         return {
           title: "Pembayaran selesai dan pesanan sudah tuntas",
           description: "Terima kasih. Seluruh proses pembayaran dan pesanan sudah selesai.",
           tone: "border-stone-200 bg-stone-50",
         };
-      case "cancelled":
+      case OrderStatus.cancelled:
         return {
           title: "Pembayaran tidak dapat dilanjutkan",
           description:
@@ -59,32 +59,32 @@ function getPaymentStatusCopy(
 
   if (paymentMethod === PaymentMethod.cashier) {
     switch (status) {
-      case "pending_payment":
+      case OrderStatus.pending_payment:
         return {
           title: "Silakan lanjutkan pembayaran di kasir",
           description:
             "Pesanan sudah masuk. Tunjukkan nomor order ini ke kasir untuk menyelesaikan pembayaran.",
           tone: "border-orange-200 bg-orange-50",
         };
-      case "paid":
+      case OrderStatus.paid:
         return {
           title: "Pembayaran kasir sudah diterima",
           description: "Kasir sudah menandai pesanan ini sebagai lunas.",
           tone: "border-emerald-200 bg-emerald-50",
         };
-      case "processing":
+      case OrderStatus.processing:
         return {
           title: "Pesanan sedang diproses",
           description: "Pembayaran sudah beres dan pesanan sedang disiapkan.",
           tone: "border-sky-200 bg-sky-50",
         };
-      case "completed":
+      case OrderStatus.completed:
         return {
           title: "Pesanan selesai",
           description: "Pembayaran dan proses pesanan sudah selesai seluruhnya.",
           tone: "border-stone-200 bg-stone-50",
         };
-      case "cancelled":
+      case OrderStatus.cancelled:
         return {
           title: "Pesanan dibatalkan",
           description: "Pesanan ini tidak dilanjutkan. Silakan buat ulang jika masih diperlukan.",
@@ -122,7 +122,7 @@ export default async function OrderStatusPage({
 
   if (
     order.paymentMethod === PaymentMethod.midtrans_snap &&
-    order.status === "pending_payment"
+    order.status === OrderStatus.pending_payment
   ) {
     try {
       const transaction = await getMidtransTransactionStatus(order.orderNumber);
@@ -133,7 +133,7 @@ export default async function OrderStatusPage({
           where: { orderNumber: order.orderNumber },
           data: {
             status: nextStatus,
-            paidAt: nextStatus === "paid" ? new Date() : undefined,
+            paidAt: nextStatus === OrderStatus.paid ? new Date() : undefined,
           },
         });
 
@@ -218,7 +218,7 @@ export default async function OrderStatusPage({
             {
               title: "Checkout",
               description:
-                currentOrder.status === "cancelled"
+                currentOrder.status === OrderStatus.cancelled
                   ? "Checkout sudah selesai, tetapi order dibatalkan."
                   : "Checkout selesai dan menunggu progres berikutnya.",
               state: "complete",
@@ -277,7 +277,7 @@ export default async function OrderStatusPage({
         ) : null}
 
         {currentOrder.paymentMethod === PaymentMethod.midtrans_snap &&
-        currentOrder.status === "pending_payment" ? (
+        currentOrder.status === OrderStatus.pending_payment ? (
           <div className="mt-6 rounded-[24px] border border-orange-200 bg-orange-50 p-4 sm:rounded-[28px] sm:p-5">
             <h2 className="text-lg font-semibold text-stone-950">Pembayaran online belum selesai</h2>
             <p className="mt-2 text-sm leading-7 text-stone-600">
