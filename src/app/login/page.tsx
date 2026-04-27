@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 
 export default async function LoginPage() {
   const session = await getSession();
+  const showDemoCredentials = process.env.NODE_ENV !== "production";
 
   if (session) {
     redirect("/kasir");
@@ -25,14 +26,29 @@ export default async function LoginPage() {
             mengelola meja, menu, dan membuat order manual untuk pelanggan walk-in.
           </p>
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-3xl bg-white/10 p-4">
-              <p className="text-sm text-stone-300">Login default seed</p>
-              <p className="mt-2 font-mono text-sm">kasir@example.com / kasir123</p>
-            </div>
-            <div className="rounded-3xl bg-white/10 p-4">
-              <p className="text-sm text-stone-300">Atau username</p>
-              <p className="mt-2 font-mono text-sm">kasir / kasir123</p>
-            </div>
+            {showDemoCredentials ? (
+              <>
+                <div className="rounded-3xl bg-white/10 p-4">
+                  <p className="text-sm text-stone-300">Login default seed</p>
+                  <p className="mt-2 font-mono text-sm">kasir@example.com / kasir123</p>
+                </div>
+                <div className="rounded-3xl bg-white/10 p-4">
+                  <p className="text-sm text-stone-300">Atau username</p>
+                  <p className="mt-2 font-mono text-sm">kasir / kasir123</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="rounded-3xl bg-white/10 p-4">
+                  <p className="text-sm text-stone-300">Akses kasir</p>
+                  <p className="mt-2 text-sm text-stone-100">Gunakan akun resmi restoran.</p>
+                </div>
+                <div className="rounded-3xl bg-white/10 p-4">
+                  <p className="text-sm text-stone-300">Keamanan</p>
+                  <p className="mt-2 text-sm text-stone-100">Credential demo disembunyikan di production.</p>
+                </div>
+              </>
+            )}
           </div>
         </section>
         <section className="px-5 py-8 sm:px-8 md:px-10 lg:px-12 lg:py-10">

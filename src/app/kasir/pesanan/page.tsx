@@ -15,6 +15,7 @@ import {
   paymentProofLabels,
 } from "@/lib/constants";
 import { getOrders } from "@/lib/data";
+import { getOrderEta } from "@/lib/order-eta";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 
 const filterOptions: Array<{ value: "all" | OrderStatus | "paid"; label: string }> = [
@@ -34,6 +35,51 @@ type OrderActionConfig = {
   pendingLabel: string;
   confirmMessage?: string;
 };
+
+type WorkLaneConfig = {
+  title: string;
+  description: string;
+  statuses: OrderStatus[];
+  tone: string;
+};
+
+const workLaneConfigs: WorkLaneConfig[] = [
+  {
+    title: "Perlu dibayar",
+    description: "Tagih kasir, tunggu Midtrans, atau cek bukti lama.",
+    statuses: [OrderStatus.pending_payment, OrderStatus.payment_submitted],
+    tone: "border-amber-200 bg-amber-50",
+  },
+  {
+    title: "Siap diproses",
+    description: "Pembayaran aman, teruskan ke dapur.",
+    statuses: [OrderStatus.paid],
+    tone: "border-emerald-200 bg-emerald-50",
+  },
+  {
+    title: "Sedang dibuat",
+    description: "Pantau sampai makanan siap diserahkan.",
+    statuses: [OrderStatus.processing],
+    tone: "border-sky-200 bg-sky-50",
+  },
+];
+
+function getStatusWorkHint(status: OrderStatus) {
+  switch (status) {
+    case OrderStatus.pending_payment:
+      return "Tagih pembayaran atau cek status Midtrans.";
+    case OrderStatus.payment_submitted:
+      return "Review bukti pembayaran lama.";
+    case OrderStatus.paid:
+      return "Kirim ke proses dapur.";
+    case OrderStatus.processing:
+      return "Tandai selesai saat pesanan sudah diantar.";
+    case OrderStatus.completed:
+      return "Order sudah selesai.";
+    case OrderStatus.cancelled:
+      return "Order dibatalkan.";
+  }
+}
 
 function getOrderActionConfig(status: OrderStatus): OrderActionConfig[] {
   switch (status) {
@@ -112,6 +158,11 @@ export default async function OrderManagementPage({
       order.paymentMethod === "midtrans_snap" && order.status === OrderStatus.pending_payment,
   ).length;
   const processingCount = orders.filter((order) => order.status === OrderStatus.processing).length;
+  const readyToCookCount = orders.filter((order) => order.status === OrderStatus.paid).length;
+  const workLanes = workLaneConfigs.map((lane) => ({
+    ...lane,
+    orders: orders.filter((order) => lane.statuses.includes(order.status)).slice(0, 4),
+  }));
 
   return (
     <div className="space-y-6">
@@ -141,10 +192,14 @@ export default async function OrderManagementPage({
           </form>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <div className="mt-5 grid gap-3 md:grid-cols-4">
           <div className="rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-200">
             <p className="text-sm text-amber-700">Menunggu pembayaran online</p>
             <p className="mt-2 text-3xl font-bold text-amber-900">{midtransPendingCount}</p>
+          </div>
+          <div className="rounded-3xl bg-emerald-50 p-4 ring-1 ring-emerald-200">
+            <p className="text-sm text-emerald-700">Siap diproses</p>
+            <p className="mt-2 text-3xl font-bold text-emerald-900">{readyToCookCount}</p>
           </div>
           <div className="rounded-3xl bg-sky-50 p-4 ring-1 ring-sky-200">
             <p className="text-sm text-sky-700">Sedang diproses</p>
@@ -187,6 +242,61 @@ export default async function OrderManagementPage({
         </div>
       </section>
 
+      <section className="grid gap-4 xl:grid-cols-3">
+        {workLanes.map((lane) => (
+          <div
+            key={lane.title}
+            className={cn("rounded-[24px] border p-4 shadow-sm sm:rounded-[28px]", lane.tone)}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-stone-950">{lane.title}</h2>
+                <p className="mt-1 text-sm leading-6 text-stone-600">{lane.description}</p>
+              </div>
+              <span className="rounded-full bg-white/80 px-3 py-1 text-sm font-semibold text-stone-800">
+                {lane.orders.length}
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {lane.orders.length ? (
+                lane.orders.map((order) => (
+                  <Link
+                    key={order.id}
+                    href={`/kasir/pesanan?q=${encodeURIComponent(order.orderNumber)}`}
+                    className="block rounded-2xl bg-white/85 p-3 ring-1 ring-black/5 transition hover:bg-white"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-mono text-xs text-stone-500">
+                          {order.orderNumber}
+                        </p>
+                        <p className="mt-1 truncate font-semibold text-stone-950">
+                          {order.customerName} - {order.table.name}
+                        </p>
+                      </div>
+                      <p className="shrink-0 text-sm font-semibold text-orange-600">
+                        {formatCurrency(order.totalAmount)}
+                      </p>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <StatusBadge tone={order.status}>{orderStatusLabels[order.status]}</StatusBadge>
+                      <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600">
+                        {getOrderEta(order.status).shortLabel}
+                      </span>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <p className="rounded-2xl bg-white/70 p-4 text-sm text-stone-500">
+                  Tidak ada order di antrian ini.
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
+      </section>
+
       {orders.length ? (
         <div className="space-y-5">
           {orders.map((order) => (
@@ -200,9 +310,17 @@ export default async function OrderManagementPage({
                   <p className="text-sm text-stone-500">
                     {formatDate(order.createdAt)} - {paymentMethodLabels[order.paymentMethod]}
                   </p>
+                  {order.notes ? (
+                    <p className="max-w-2xl rounded-2xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                      Catatan customer: {order.notes}
+                    </p>
+                  ) : null}
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 xl:justify-end">
                   <StatusBadge tone={order.status}>{orderStatusLabels[order.status]}</StatusBadge>
+                  <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-700">
+                    ETA {getOrderEta(order.status).shortLabel}
+                  </span>
                   <p className="text-xl font-bold text-orange-600">{formatCurrency(order.totalAmount)}</p>
                 </div>
               </div>
@@ -230,18 +348,10 @@ export default async function OrderManagementPage({
                       <div>
                         <p className="text-sm text-stone-500">Aksi status</p>
                         <p className="mt-1 text-sm text-stone-700">
-                          {order.status === OrderStatus.pending_payment &&
-                            "Prioritaskan pembayaran atau batalkan jika order tidak lanjut."}
-                          {order.status === OrderStatus.payment_submitted &&
-                            "Masih ada order lama dengan bukti QRIS yang menunggu review."}
-                          {order.status === OrderStatus.paid &&
-                            "Pembayaran aman, order siap diproses."}
-                          {order.status === OrderStatus.processing &&
-                            "Tandai selesai ketika makanan sudah sampai ke customer."}
-                          {order.status === OrderStatus.completed &&
-                            "Order ini sudah selesai."}
-                          {order.status === OrderStatus.cancelled &&
-                            "Order ini sudah dibatalkan."}
+                          {getStatusWorkHint(order.status)}
+                        </p>
+                        <p className="mt-2 text-xs font-medium text-stone-500">
+                          {getOrderEta(order.status).label}
                         </p>
                       </div>
                       <StatusBadge tone={order.status}>{orderStatusLabels[order.status]}</StatusBadge>
