@@ -55,3 +55,125 @@ textarea {
     radial-gradient(circle at bottom right, rgba(251, 146, 60, 0.18), transparent 25%),
     linear-gradient(180deg, #fffaf4 0%, #f5ede3 100%);
 }
+
+@keyframes fade-up-soft {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow-soft {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 16px 30px rgba(23, 22, 20, 0.18);
+  }
+
+  50% {
+    transform: scale(1.015);
+    box-shadow: 0 20px 36px rgba(249, 115, 22, 0.24);
+  }
+}
+
+@keyframes fly-to-cart {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(
+        calc(-50% + var(--fly-x, 0px)),
+        calc(-50% + var(--fly-y, 0px))
+      )
+      scale(0.68);
+  }
+}
+
+.animate-fade-up-soft {
+  animation: fade-up-soft 0.45s ease-out both;
+}
+
+.animate-pulse-glow-soft {
+  animation: pulse-glow-soft 2.4s ease-in-out infinite;
+}
+
+.menu-card-lift {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.menu-card-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 28px rgba(41, 28, 18, 0.08);
+  border-color: rgba(251, 146, 60, 0.45);
+}
+
+.menu-card-lift:active {
+  transform: translateY(-1px) scale(0.995);
+}
+
+.cart-chip-pop {
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.cart-chip-pop.is-active {
+  transform: scale(1.08);
+}
+
+.fly-to-cart-chip {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+  color: #fff;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 14px 30px rgba(249, 115, 22, 0.28);
+  white-space: nowrap;
+  animation: fly-to-cart 0.72s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .fly-to-cart-chip,
+  .animate-fade-up-soft,
+  .animate-pulse-glow-soft {
+    animation: none;
+  }
+
+  .menu-card-lift,
+  .cart-chip-pop {
+    transition: none;
+  }
+
+  .menu-card-lift:hover,
+  .menu-card-lift:active,
+  .cart-chip-pop.is-active {
+    transform: none;
+    box-shadow: none;
+  }
+}
