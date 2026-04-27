@@ -207,6 +207,7 @@ export async function createMenuItemAction(formData: FormData) {
 
     revalidatePath("/kasir/menu");
     revalidatePath("/");
+    redirect("/kasir/menu?notice=menu-created");
   } catch (error) {
     await deleteMenuImageFile(imageUrl);
     console.error("Gagal menyimpan foto menu", error);
@@ -347,6 +348,7 @@ export async function deleteMenuItemAction(formData: FormData) {
 
   revalidatePath("/kasir/menu");
   revalidatePath("/");
+  redirect("/kasir/menu?notice=menu-deleted");
 }
 
 export async function createTableAction(formData: FormData) {
