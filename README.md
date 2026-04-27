@@ -24,7 +24,7 @@ Website order makanan dan minuman berbasis scan QR per meja dengan dashboard kas
 - Next.js 16 App Router
 - Tailwind CSS 4
 - Prisma Client
-- PostgreSQL untuk environment production/Vercel
+- SQLite untuk development default
 - Session auth sederhana untuk kasir
 
 ## Menjalankan project
@@ -40,12 +40,6 @@ npm install
 ```bash
 copy .env.example .env
 ```
-
-Untuk Neon, isi:
-
-- `DATABASE_URL` dengan connection string pooled Neon untuk runtime aplikasi
-- `DIRECT_URL` dengan connection string direct Neon untuk `prisma db push`, seed, dan tooling Prisma
-- tambahkan `sslmode=require` dan gunakan string dari dashboard Neon sesuai branch/database yang aktif
 
 3. Siapkan database dan seed data:
 
@@ -67,12 +61,11 @@ npm run dev
 http://localhost:3000
 ```
 
-## Deploy ke Vercel
+## Environment variable
 
-Tambahkan environment variable ini di Vercel Project Settings:
+Tambahkan environment variable ini:
 
 - `DATABASE_URL`
-- `DIRECT_URL`
 - `SESSION_SECRET`
 - `CASHIER_NAME`
 - `CASHIER_EMAIL`
@@ -80,15 +73,12 @@ Tambahkan environment variable ini di Vercel Project Settings:
 - `CASHIER_PASSWORD`
 - `NEXT_PUBLIC_APP_URL`
 
-Catatan deploy:
+Catatan:
 
 - Project ini tidak lagi memakai dependency khusus Windows.
-- Bukti bayar QRIS disimpan langsung sebagai data URL di database agar tidak bergantung pada filesystem server Vercel.
-- Gunakan database PostgreSQL yang bisa diakses dari Vercel, misalnya Vercel Postgres atau Neon.
-- Untuk Neon, pakai URL pooler pada `DATABASE_URL` dan URL direct non-pooler pada `DIRECT_URL`.
-- Setelah `DATABASE_URL` dan `DIRECT_URL` tersedia, jalankan `npm run db:push` dan `npm run db:seed` terhadap database tersebut sebelum aplikasi dipakai penuh.
-- Jika homepage menampilkan pesan setup database, berarti build berhasil tetapi runtime production belum bisa terhubung ke PostgreSQL.
-- Di Vercel, isi `NEXT_PUBLIC_APP_URL` dengan domain deploy production Anda, misalnya `https://namaproject.vercel.app`.
+- Bukti bayar QRIS disimpan langsung sebagai data URL di database agar tidak bergantung pada filesystem server.
+- Default repo ini memakai SQLite lokal melalui `file:./dev.db`.
+- Jika homepage atau halaman menu menampilkan pesan setup database, cek `DATABASE_URL`, lalu jalankan `npm run db:push` dan `npm run db:seed`.
 
 ## Login kasir default
 
@@ -104,5 +94,5 @@ Nilai ini bisa diubah dari file `.env` sebelum menjalankan `npm run db:seed`.
 - `npm run build` build production
 - `npm run lint` cek lint
 - `npm run db:generate` generate Prisma client
-- `npm run db:push` sinkronkan schema Prisma ke PostgreSQL
+- `npm run db:push` sinkronkan schema Prisma ke database aktif
 - `npm run db:seed` isi data awal kasir, meja, kategori, menu, dan order demo
