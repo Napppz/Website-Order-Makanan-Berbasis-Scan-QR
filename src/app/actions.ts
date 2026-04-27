@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 
 import {
+  Prisma,
   OrderStatus,
   PaymentMethod,
   PaymentProofStatus,
@@ -293,11 +294,56 @@ export async function deleteMenuItemAction(formData: FormData) {
 
   const menuItem = await prisma.menuItem.findUnique({
     where: { id },
-    select: { imageUrl: true },
+    select: {
+      imageUrl: true,
+      name: true,
+      _count: {
+        select: { orderItems: true },
+      },
+    },
   });
 
-  await prisma.menuItem.delete({ where: { id } });
-  await deleteMenuImageFile(menuItem?.imageUrl);
+  if (!menuItem) {
+    return;
+  }
+
+  if (menuItem._count.orderItems > 0) {
+    await prisma.menuItem.update({
+      where: { id },
+      data: {
+        isAvailable: false,
+        stock: 0,
+      },
+    });
+
+    revalidatePath("/kasir/menu");
+    revalidatePath("/");
+    redirect("/kasir/menu?notice=menu-archived");
+  }
+
+  try {
+    await prisma.menuItem.delete({ where: { id } });
+    await deleteMenuImageFile(menuItem.imageUrl);
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2003"
+    ) {
+      await prisma.menuItem.update({
+        where: { id },
+        data: {
+          isAvailable: false,
+          stock: 0,
+        },
+      });
+
+      revalidatePath("/kasir/menu");
+      revalidatePath("/");
+      redirect("/kasir/menu?notice=menu-archived");
+    }
+
+    throw error;
+  }
 
   revalidatePath("/kasir/menu");
   revalidatePath("/");

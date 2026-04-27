@@ -9,11 +9,24 @@ import {
 import { getCategoriesWithItems } from "@/lib/data";
 import { formatCurrency } from "@/lib/utils";
 
-export default async function MenuManagementPage() {
+export default async function MenuManagementPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ notice?: string }>;
+}) {
+  const { notice } = await searchParams;
   const categories = await getCategoriesWithItems();
 
   return (
     <div className="space-y-8">
+      {notice === "menu-archived" ? (
+        <section className="rounded-[24px] border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 shadow-sm ring-1 ring-amber-200 sm:rounded-[28px] sm:p-5">
+          Menu yang sudah pernah dipakai dalam pesanan tidak bisa dihapus permanen karena masih
+          dibutuhkan untuk riwayat transaksi. Sistem menonaktifkan menu tersebut dan mengosongkan
+          stoknya sebagai gantinya.
+        </section>
+      ) : null}
+
       <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <div className="rounded-[32px] bg-white p-6 shadow-sm ring-1 ring-stone-200">
           <h2 className="text-xl font-semibold text-stone-950">Tambah kategori</h2>
@@ -184,7 +197,7 @@ export default async function MenuManagementPage() {
                     <form action={deleteMenuItemAction}>
                       <input type="hidden" name="id" value={item.id} />
                       <button className="rounded-full border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700">
-                        Hapus
+                        Hapus / Arsipkan
                       </button>
                     </form>
                   </div>
