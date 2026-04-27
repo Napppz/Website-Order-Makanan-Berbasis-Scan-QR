@@ -72,13 +72,34 @@ Tambahkan environment variable ini:
 - `CASHIER_USERNAME`
 - `CASHIER_PASSWORD`
 - `NEXT_PUBLIC_APP_URL`
+- `CLOUDFLARE_R2_ACCOUNT_ID`
+- `CLOUDFLARE_R2_ACCESS_KEY_ID`
+- `CLOUDFLARE_R2_SECRET_ACCESS_KEY`
+- `CLOUDFLARE_R2_BUCKET_NAME`
+- `CLOUDFLARE_R2_PUBLIC_URL`
 
 Catatan:
 
 - Project ini tidak lagi memakai dependency khusus Windows.
-- Bukti bayar QRIS disimpan langsung sebagai data URL di database agar tidak bergantung pada filesystem server.
-- Default repo ini memakai SQLite lokal melalui `file:./dev.db`.
+- Bukti bayar QRIS dan foto menu sekarang diunggah ke Cloudflare R2.
+- `CLOUDFLARE_R2_PUBLIC_URL` bisa diisi custom domain bucket Anda, misalnya `https://cdn.domainanda.com`, atau URL publik `r2.dev` untuk development.
 - Jika homepage atau halaman menu menampilkan pesan setup database, cek `DATABASE_URL`, lalu jalankan `npm run db:push` dan `npm run db:seed`.
+
+## Setup Cloudflare R2
+
+1. Buat bucket baru di Cloudflare R2.
+2. Buat API token R2 dengan izin object read/write untuk bucket tersebut.
+3. Ambil `Account ID` dari dashboard Cloudflare.
+4. Hubungkan bucket ke custom domain publik atau aktifkan `r2.dev` untuk development.
+5. Isi environment variable R2 di `.env` lokal dan di Vercel Project Settings.
+
+Nilai yang perlu diisi:
+
+- `CLOUDFLARE_R2_ACCOUNT_ID`: account ID Cloudflare Anda
+- `CLOUDFLARE_R2_ACCESS_KEY_ID`: access key R2
+- `CLOUDFLARE_R2_SECRET_ACCESS_KEY`: secret key R2
+- `CLOUDFLARE_R2_BUCKET_NAME`: nama bucket
+- `CLOUDFLARE_R2_PUBLIC_URL`: base URL publik bucket tanpa slash di akhir
 
 ## Login kasir default
 

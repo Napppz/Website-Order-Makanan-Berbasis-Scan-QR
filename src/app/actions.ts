@@ -14,6 +14,10 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { createSession, destroySession, requireCashier } from "@/lib/auth";
+import {
+  deleteR2ObjectByUrl,
+  uploadBufferToR2,
+} from "@/lib/cloudflare-r2";
 import { getPrisma } from "@/lib/prisma";
 import { generateOrderNumber, slugify } from "@/lib/utils";
 
@@ -59,8 +63,12 @@ async function saveProofFile(file: File) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const base64 = buffer.toString("base64");
-  return `data:${file.type};base64,${base64}`;
+  return uploadBufferToR2({
+    buffer,
+    contentType: file.type,
+    keyPrefix: "payment-proofs",
+    fileName: file.name || "proof-upload",
+  });
 }
 
 async function saveMenuImageFile(file: File) {
@@ -79,12 +87,16 @@ async function saveMenuImageFile(file: File) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const base64 = buffer.toString("base64");
-  return `data:${file.type};base64,${base64}`;
+  return uploadBufferToR2({
+    buffer,
+    contentType: file.type,
+    keyPrefix: "menu-images",
+    fileName: file.name || "menu-image",
+  });
 }
 
 async function deleteMenuImageFile(imageUrl: string | null | undefined) {
-  void imageUrl;
+  await deleteR2ObjectByUrl(imageUrl);
 }
 
 function parseCart(rawCart: string) {
