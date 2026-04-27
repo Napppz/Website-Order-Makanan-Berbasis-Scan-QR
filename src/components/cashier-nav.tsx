@@ -28,7 +28,7 @@ export function CashierNav({ items }: { items: NavItem[] }) {
             className={cn(
               "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition",
               isActive
-                ? "border-stone-950 bg-stone-950 text-white"
+                ? "border-orange-500 bg-orange-500 text-white shadow-sm shadow-orange-200"
                 : "border-stone-200 bg-white text-stone-700 hover:border-orange-300 hover:text-orange-600",
             )}
           >
@@ -38,7 +38,7 @@ export function CashierNav({ items }: { items: NavItem[] }) {
                 className={cn(
                   "rounded-full px-2 py-0.5 text-xs font-semibold",
                   isActive
-                    ? "bg-white/15 text-white"
+                    ? "bg-white text-orange-700"
                     : "bg-orange-100 text-orange-700",
                 )}
               >

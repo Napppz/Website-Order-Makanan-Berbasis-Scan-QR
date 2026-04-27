@@ -231,7 +231,7 @@ export default async function OrderManagementPage({
                 className={cn(
                   "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition",
                   isActive
-                    ? "border-stone-950 bg-stone-950 text-white"
+                    ? "border-orange-500 bg-orange-500 text-white shadow-sm shadow-orange-200"
                     : "border-stone-200 bg-white text-stone-700 hover:border-orange-300 hover:text-orange-600",
                 )}
               >
