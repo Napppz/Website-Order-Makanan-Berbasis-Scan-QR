@@ -171,6 +171,59 @@ export async function getDashboardPaidOrders(limit = 5) {
   });
 }
 
+export async function getLowStockMenuItems(limit = 8, threshold = 5) {
+  return getPrisma().menuItem.findMany({
+    where: {
+      isAvailable: true,
+      stock: {
+        lte: threshold,
+      },
+    },
+    orderBy: [{ stock: "asc" }, { name: "asc" }],
+    take: limit,
+    select: {
+      id: true,
+      name: true,
+      stock: true,
+      category: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+}
+
+export async function getSalesReportOrders({
+  from,
+  to,
+}: {
+  from?: Date;
+  to?: Date;
+}) {
+  return getPrisma().order.findMany({
+    where: {
+      ...(from || to
+        ? {
+            createdAt: {
+              ...(from ? { gte: from } : {}),
+              ...(to ? { lt: to } : {}),
+            },
+          }
+        : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    include: {
+      table: true,
+      items: {
+        include: {
+          menuItem: true,
+        },
+      },
+    },
+  });
+}
+
 export async function getOrders(
   status?: OrderStatus | "all" | "paid-only",
   search?: string,

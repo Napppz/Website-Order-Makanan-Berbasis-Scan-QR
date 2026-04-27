@@ -6,15 +6,17 @@ import {
   getDashboardPaidOrders,
   getDashboardRecentOrders,
   getDashboardStats,
+  getLowStockMenuItems,
 } from "@/lib/data";
 import { getOrderEta } from "@/lib/order-eta";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default async function CashierDashboardPage() {
-  const [stats, recentOrders, paidOrders] = await Promise.all([
+  const [stats, recentOrders, paidOrders, lowStockItems] = await Promise.all([
     getDashboardStats(),
     getDashboardRecentOrders(),
     getDashboardPaidOrders(),
+    getLowStockMenuItems(),
   ]);
 
   return (
@@ -133,6 +135,43 @@ export default async function CashierDashboardPage() {
           </div>
         </div>
 
+        <div className="space-y-6">
+        <div className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-stone-200 sm:rounded-[32px] sm:p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-stone-950">Stok menipis</h2>
+              <p className="text-sm text-stone-500">Menu aktif dengan stok 5 atau kurang.</p>
+            </div>
+            <Link
+              href="/kasir/menu"
+              className="rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white"
+            >
+              Kelola stok
+            </Link>
+          </div>
+          <div className="mt-5 space-y-3">
+            {lowStockItems.length ? (
+              lowStockItems.map((item) => (
+                <div key={item.id} className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-stone-950">{item.name}</p>
+                      <p className="mt-1 text-sm text-stone-500">{item.category.name}</p>
+                    </div>
+                    <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-amber-700">
+                      Sisa {item.stock}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="rounded-2xl bg-stone-50 p-4 text-sm text-stone-500">
+                Stok menu aktif masih aman.
+              </p>
+            )}
+          </div>
+        </div>
+
         <div className="rounded-[24px] bg-stone-950 p-4 text-white shadow-xl sm:rounded-[32px] sm:p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -164,6 +203,7 @@ export default async function CashierDashboardPage() {
               </div>
             ))}
           </div>
+        </div>
         </div>
       </section>
     </div>

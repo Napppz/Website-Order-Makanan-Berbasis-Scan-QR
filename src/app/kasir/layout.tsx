@@ -9,6 +9,8 @@ const navItems = [
   { href: "/kasir/meja", label: "Meja & QR" },
   { href: "/kasir/pesanan", label: "Pesanan" },
   { href: "/kasir/buat-pesanan", label: "Buat Pesanan" },
+  { href: "/kasir/laporan", label: "Laporan" },
+  { href: "/kasir/akun", label: "Akun" },
 ];
 
 export default async function CashierLayout({

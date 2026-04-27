@@ -6,7 +6,9 @@ import {
   rejectPaymentProofAction,
   updateOrderStatusAction,
 } from "@/app/actions";
+import { CashierActionNotice } from "@/components/cashier-action-notice";
 import { CashierActionButton } from "@/components/cashier-action-button";
+import { CashierAutoRefresh } from "@/components/cashier-auto-refresh";
 import { StatusBadge } from "@/components/status-badge";
 import {
   orderStatusLabels,
@@ -64,6 +66,13 @@ const workLaneConfigs: WorkLaneConfig[] = [
   },
 ];
 
+const activeOrderStatuses: OrderStatus[] = [
+  OrderStatus.pending_payment,
+  OrderStatus.payment_submitted,
+  OrderStatus.paid,
+  OrderStatus.processing,
+];
+
 function getStatusWorkHint(status: OrderStatus) {
   switch (status) {
     case OrderStatus.pending_payment:
@@ -79,6 +88,29 @@ function getStatusWorkHint(status: OrderStatus) {
     case OrderStatus.cancelled:
       return "Order dibatalkan.";
   }
+}
+
+function getNoticeMessage(notice: string | undefined) {
+  switch (notice) {
+    case "status-paid":
+      return "Order berhasil ditandai sudah dibayar.";
+    case "status-processing":
+      return "Order berhasil dipindahkan ke proses dapur.";
+    case "status-completed":
+      return "Order berhasil ditandai selesai.";
+    case "status-cancelled":
+      return "Order berhasil dibatalkan.";
+    case "payment-approved":
+      return "Bukti pembayaran berhasil disetujui.";
+    case "payment-rejected":
+      return "Bukti pembayaran berhasil ditolak.";
+    default:
+      return null;
+  }
+}
+
+function isNewOrder(createdAt: Date) {
+  return Date.now() - createdAt.getTime() <= 5 * 60 * 1000;
 }
 
 function getOrderActionConfig(status: OrderStatus): OrderActionConfig[] {
@@ -141,9 +173,9 @@ function getOrderActionConfig(status: OrderStatus): OrderActionConfig[] {
 export default async function OrderManagementPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; q?: string }>;
+  searchParams: Promise<{ filter?: string; q?: string; notice?: string }>;
 }) {
-  const { filter, q } = await searchParams;
+  const { filter, q, notice } = await searchParams;
   const selectedFilter =
     filter === "paid"
       ? "paid-only"
@@ -157,15 +189,31 @@ export default async function OrderManagementPage({
     (order) =>
       order.paymentMethod === "midtrans_snap" && order.status === OrderStatus.pending_payment,
   ).length;
+  const activeOrderCount = orders.filter((order) =>
+    activeOrderStatuses.includes(order.status),
+  ).length;
   const processingCount = orders.filter((order) => order.status === OrderStatus.processing).length;
   const readyToCookCount = orders.filter((order) => order.status === OrderStatus.paid).length;
   const workLanes = workLaneConfigs.map((lane) => ({
     ...lane,
     orders: orders.filter((order) => lane.statuses.includes(order.status)).slice(0, 4),
   }));
+  const currentParams = new URLSearchParams();
+  if (filter) {
+    currentParams.set("filter", filter);
+  }
+  if (query) {
+    currentParams.set("q", query);
+  }
+  const currentPath = `/kasir/pesanan${currentParams.toString() ? `?${currentParams}` : ""}`;
+  const noticeMessage = getNoticeMessage(notice);
 
   return (
     <div className="space-y-6">
+      {noticeMessage ? (
+        <CashierActionNotice message={noticeMessage} dismissHref={currentPath} />
+      ) : null}
+
       <section className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-stone-200 sm:rounded-[32px] sm:p-6">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div>
@@ -209,6 +257,10 @@ export default async function OrderManagementPage({
             <p className="text-sm text-stone-600">Order pada tampilan ini</p>
             <p className="mt-2 text-3xl font-bold text-stone-950">{orders.length}</p>
           </div>
+        </div>
+
+        <div className="mt-5">
+          <CashierAutoRefresh activeOrderCount={activeOrderCount} />
         </div>
 
         <div className="-mx-1 mt-5 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
@@ -280,6 +332,11 @@ export default async function OrderManagementPage({
                       </p>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
+                      {isNewOrder(order.createdAt) ? (
+                        <span className="rounded-full bg-orange-100 px-2.5 py-1 text-xs font-semibold text-orange-700">
+                          Baru
+                        </span>
+                      ) : null}
                       <StatusBadge tone={order.status}>{orderStatusLabels[order.status]}</StatusBadge>
                       <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600">
                         {getOrderEta(order.status).shortLabel}
@@ -317,6 +374,11 @@ export default async function OrderManagementPage({
                   ) : null}
                 </div>
                 <div className="flex flex-wrap items-center gap-3 xl:justify-end">
+                  {isNewOrder(order.createdAt) ? (
+                    <span className="rounded-full bg-orange-100 px-3 py-1 text-sm font-semibold text-orange-700">
+                      Baru
+                    </span>
+                  ) : null}
                   <StatusBadge tone={order.status}>{orderStatusLabels[order.status]}</StatusBadge>
                   <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-700">
                     ETA {getOrderEta(order.status).shortLabel}
@@ -362,6 +424,7 @@ export default async function OrderManagementPage({
                           <form key={action.status} action={updateOrderStatusAction}>
                             <input type="hidden" name="orderId" value={order.id} />
                             <input type="hidden" name="nextStatus" value={action.status} />
+                            <input type="hidden" name="returnTo" value={currentPath} />
                             <CashierActionButton
                               label={action.label}
                               pendingLabel={action.pendingLabel}
@@ -402,6 +465,7 @@ export default async function OrderManagementPage({
                       <div className="mt-4 flex flex-wrap gap-2">
                         <form action={approvePaymentProofAction}>
                           <input type="hidden" name="orderId" value={order.id} />
+                          <input type="hidden" name="returnTo" value={currentPath} />
                           <CashierActionButton
                             label="Approve"
                             pendingLabel="Menyetujui..."
@@ -410,6 +474,7 @@ export default async function OrderManagementPage({
                         </form>
                         <form action={rejectPaymentProofAction}>
                           <input type="hidden" name="orderId" value={order.id} />
+                          <input type="hidden" name="returnTo" value={currentPath} />
                           <CashierActionButton
                             label="Reject"
                             pendingLabel="Menolak..."

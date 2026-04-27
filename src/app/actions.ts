@@ -33,6 +33,17 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password wajib diisi."),
 });
 
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Password lama wajib diisi."),
+    newPassword: z.string().min(8, "Password baru minimal 8 karakter."),
+    confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi."),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Konfirmasi password tidak sama.",
+    path: ["confirmPassword"],
+  });
+
 const lineItemSchema = z.object({
   menuItemId: z.string().min(1),
   quantity: z.number().int().positive(),
@@ -89,6 +100,25 @@ function isLikelyCuid(value: string) {
 
 function getRateLimitErrorMessage(retryAfterSeconds: number) {
   return `Terlalu banyak permintaan. Coba lagi dalam ${retryAfterSeconds} detik.`;
+}
+
+function getSafeCashierReturnPath(formData: FormData) {
+  const rawReturnTo = String(formData.get("returnTo") ?? "").trim();
+
+  if (
+    rawReturnTo.startsWith("/kasir/pesanan") &&
+    !rawReturnTo.startsWith("//") &&
+    !rawReturnTo.includes("://")
+  ) {
+    return rawReturnTo;
+  }
+
+  return "/kasir/pesanan";
+}
+
+function withNotice(path: string, notice: string) {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}notice=${encodeURIComponent(notice)}`;
 }
 
 async function ensureUniqueOrderNumber() {
@@ -269,6 +299,41 @@ export async function loginCashier(
 export async function logoutCashier() {
   await destroySession();
   redirect("/login");
+}
+
+export async function updateCashierPasswordAction(formData: FormData) {
+  const cashier = await requireCashier();
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    redirect(
+      `/kasir/akun?notice=error&message=${encodeURIComponent(
+        parsed.error.issues[0]?.message ?? "Data password tidak valid.",
+      )}`,
+    );
+  }
+
+  const isCurrentPasswordValid = await bcrypt.compare(
+    parsed.data.currentPassword,
+    cashier.passwordHash,
+  );
+  if (!isCurrentPasswordValid) {
+    redirect(
+      `/kasir/akun?notice=error&message=${encodeURIComponent("Password lama tidak sesuai.")}`,
+    );
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
+  await prisma.cashierUser.update({
+    where: { id: cashier.id },
+    data: { passwordHash },
+  });
+
+  redirect("/kasir/akun?notice=password-updated");
 }
 
 export async function createCategoryAction(formData: FormData) {
@@ -787,6 +852,7 @@ export async function updateOrderStatusAction(formData: FormData) {
 
   const orderId = String(formData.get("orderId") ?? "");
   const nextStatus = String(formData.get("nextStatus") ?? "") as OrderStatus;
+  const returnTo = getSafeCashierReturnPath(formData);
 
   if (
     !orderId ||
@@ -835,11 +901,13 @@ export async function updateOrderStatusAction(formData: FormData) {
 
   revalidatePath("/kasir");
   revalidatePath("/kasir/pesanan");
+  redirect(withNotice(returnTo, `status-${nextStatus}`));
 }
 
 export async function approvePaymentProofAction(formData: FormData) {
   const cashier = await requireCashier();
   const orderId = String(formData.get("orderId") ?? "");
+  const returnTo = getSafeCashierReturnPath(formData);
 
   if (!orderId || !isLikelyCuid(orderId)) {
     return;
@@ -863,11 +931,13 @@ export async function approvePaymentProofAction(formData: FormData) {
 
   revalidatePath("/kasir");
   revalidatePath("/kasir/pesanan");
+  redirect(withNotice(returnTo, "payment-approved"));
 }
 
 export async function rejectPaymentProofAction(formData: FormData) {
   const cashier = await requireCashier();
   const orderId = String(formData.get("orderId") ?? "");
+  const returnTo = getSafeCashierReturnPath(formData);
 
   if (!orderId || !isLikelyCuid(orderId)) {
     return;
@@ -890,6 +960,7 @@ export async function rejectPaymentProofAction(formData: FormData) {
 
   revalidatePath("/kasir");
   revalidatePath("/kasir/pesanan");
+  redirect(withNotice(returnTo, "payment-rejected"));
 }
 
 export async function redirectToMidtransPaymentAction(formData: FormData) {
