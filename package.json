@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run lint && npm run build",
+    "prebuild": "node scripts/verify-env.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

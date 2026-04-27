@@ -159,6 +159,7 @@ export async function getDashboardPaidOrders(limit = 5) {
     select: {
       id: true,
       customerName: true,
+      status: true,
       totalAmount: true,
       createdAt: true,
       table: {

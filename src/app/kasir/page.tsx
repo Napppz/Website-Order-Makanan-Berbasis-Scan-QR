@@ -7,6 +7,7 @@ import {
   getDashboardRecentOrders,
   getDashboardStats,
 } from "@/lib/data";
+import { getOrderEta } from "@/lib/order-eta";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default async function CashierDashboardPage() {
@@ -116,6 +117,9 @@ export default async function CashierDashboardPage() {
                     <p className="mt-1 text-sm text-stone-500">
                       {paymentMethodLabels[order.paymentMethod]} - {formatDate(order.createdAt)}
                     </p>
+                    <p className="mt-1 text-sm text-stone-500">
+                      Estimasi siap: {getOrderEta(order.status).shortLabel}
+                    </p>
                   </div>
                   <div className="flex flex-col items-start gap-2 md:items-end">
                     <StatusBadge tone={order.status}>{orderStatusLabels[order.status]}</StatusBadge>
@@ -150,6 +154,9 @@ export default async function CashierDashboardPage() {
                     <p className="font-semibold">{order.customerName}</p>
                     <p className="text-sm text-stone-300">
                       {order.table.name} - {formatDate(order.createdAt)}
+                    </p>
+                    <p className="text-xs text-stone-400">
+                      Estimasi siap: {getOrderEta(order.status).shortLabel}
                     </p>
                   </div>
                   <p className="font-semibold text-orange-200">{formatCurrency(order.totalAmount)}</p>

@@ -23,6 +23,7 @@ import {
   getMidtransConfigurationError,
 } from "@/lib/midtrans";
 import { getPrisma } from "@/lib/prisma";
+import { enforceRateLimit, getRateLimitClientIp } from "@/lib/rate-limit";
 import { generateOrderNumber, slugify } from "@/lib/utils";
 
 const prisma = getPrisma();
@@ -37,6 +38,58 @@ const lineItemSchema = z.object({
   quantity: z.number().int().positive(),
   note: z.string().max(250).optional().default(""),
 });
+
+type LoginActionState = {
+  error?: string;
+  retryAfterSeconds?: number;
+};
+
+type CustomerOrderActionResult = {
+  success: boolean;
+  error?: string;
+  orderNumber?: string;
+  paymentUrl?: string | null;
+  retryAfterSeconds?: number;
+};
+
+const LOGIN_RATE_LIMIT = {
+  keyPrefix: "login-cashier",
+  limit: 8,
+  windowSeconds: 60,
+} as const;
+
+const SUBMIT_ORDER_RATE_LIMIT = {
+  keyPrefix: "customer-order-submit",
+  limit: 10,
+  windowSeconds: 60,
+} as const;
+
+const REDIRECT_MIDTRANS_RATE_LIMIT = {
+  keyPrefix: "midtrans-redirect",
+  limit: 12,
+  windowSeconds: 60,
+} as const;
+
+const allowedOrderStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
+  [OrderStatus.pending_payment]: [OrderStatus.paid, OrderStatus.cancelled],
+  [OrderStatus.payment_submitted]: [
+    OrderStatus.paid,
+    OrderStatus.processing,
+    OrderStatus.cancelled,
+  ],
+  [OrderStatus.paid]: [OrderStatus.processing],
+  [OrderStatus.processing]: [OrderStatus.completed],
+  [OrderStatus.completed]: [],
+  [OrderStatus.cancelled]: [],
+};
+
+function isLikelyCuid(value: string) {
+  return /^c[a-z0-9]{24,}$/i.test(value.trim());
+}
+
+function getRateLimitErrorMessage(retryAfterSeconds: number) {
+  return `Terlalu banyak permintaan. Coba lagi dalam ${retryAfterSeconds} detik.`;
+}
 
 async function ensureUniqueOrderNumber() {
   for (let index = 0; index < 10; index += 1) {
@@ -161,7 +214,10 @@ async function ensureMidtransPaymentLink(orderId: string) {
   };
 }
 
-export async function loginCashier(_: { error?: string } | undefined, formData: FormData) {
+export async function loginCashier(
+  _: LoginActionState | undefined,
+  formData: FormData,
+) {
   const parsed = loginSchema.safeParse({
     identity: formData.get("identity"),
     password: formData.get("password"),
@@ -169,6 +225,18 @@ export async function loginCashier(_: { error?: string } | undefined, formData: 
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Data login tidak valid." };
+  }
+
+  const ipAddress = await getRateLimitClientIp();
+  const rateLimitResult = await enforceRateLimit(LOGIN_RATE_LIMIT, [
+    ipAddress,
+    parsed.data.identity,
+  ]);
+  if (!rateLimitResult.ok) {
+    return {
+      error: getRateLimitErrorMessage(rateLimitResult.retryAfterSeconds),
+      retryAfterSeconds: rateLimitResult.retryAfterSeconds,
+    };
   }
 
   const cashier = await prisma.cashierUser.findFirst({
@@ -467,13 +535,32 @@ export async function deleteTableAction(formData: FormData) {
   revalidatePath("/kasir/meja");
 }
 
-export async function submitCustomerOrder(formData: FormData) {
+export async function submitCustomerOrder(
+  formData: FormData,
+): Promise<CustomerOrderActionResult> {
   try {
     const customerName = String(formData.get("customerName") ?? "").trim();
     const tableId = String(formData.get("tableId") ?? "");
     const paymentMethod = String(formData.get("paymentMethod") ?? "");
     const notes = String(formData.get("notes") ?? "").trim();
     const items = parseCart(String(formData.get("cart") ?? "[]"));
+
+    if (!isLikelyCuid(tableId)) {
+      return { success: false, error: "Data meja tidak valid." };
+    }
+
+    const ipAddress = await getRateLimitClientIp();
+    const rateLimitResult = await enforceRateLimit(SUBMIT_ORDER_RATE_LIMIT, [
+      ipAddress,
+      tableId,
+    ]);
+    if (!rateLimitResult.ok) {
+      return {
+        success: false,
+        error: getRateLimitErrorMessage(rateLimitResult.retryAfterSeconds),
+        retryAfterSeconds: rateLimitResult.retryAfterSeconds,
+      };
+    }
 
     if (!customerName) {
       return { success: false, error: "Nama pemesan wajib diisi." };
@@ -701,7 +788,24 @@ export async function updateOrderStatusAction(formData: FormData) {
   const orderId = String(formData.get("orderId") ?? "");
   const nextStatus = String(formData.get("nextStatus") ?? "") as OrderStatus;
 
-  if (!orderId || !Object.values(OrderStatus).includes(nextStatus)) {
+  if (
+    !orderId ||
+    !isLikelyCuid(orderId) ||
+    !Object.values(OrderStatus).includes(nextStatus)
+  ) {
+    return;
+  }
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { status: true },
+  });
+  if (!order) {
+    return;
+  }
+
+  const allowedNextStatuses = allowedOrderStatusTransitions[order.status] ?? [];
+  if (!allowedNextStatuses.includes(nextStatus)) {
     return;
   }
 
@@ -737,7 +841,7 @@ export async function approvePaymentProofAction(formData: FormData) {
   const cashier = await requireCashier();
   const orderId = String(formData.get("orderId") ?? "");
 
-  if (!orderId) {
+  if (!orderId || !isLikelyCuid(orderId)) {
     return;
   }
 
@@ -765,7 +869,7 @@ export async function rejectPaymentProofAction(formData: FormData) {
   const cashier = await requireCashier();
   const orderId = String(formData.get("orderId") ?? "");
 
-  if (!orderId) {
+  if (!orderId || !isLikelyCuid(orderId)) {
     return;
   }
 
@@ -791,7 +895,7 @@ export async function rejectPaymentProofAction(formData: FormData) {
 export async function redirectToMidtransPaymentAction(formData: FormData) {
   const orderId = String(formData.get("orderId") ?? "");
 
-  if (!orderId) {
+  if (!orderId || !isLikelyCuid(orderId)) {
     return;
   }
 
@@ -801,11 +905,27 @@ export async function redirectToMidtransPaymentAction(formData: FormData) {
       id: true,
       orderNumber: true,
       paymentMethod: true,
+      status: true,
     },
   });
 
   if (!order || order.paymentMethod !== PaymentMethod.midtrans_snap) {
     return;
+  }
+
+  const ipAddress = await getRateLimitClientIp();
+  const rateLimitResult = await enforceRateLimit(REDIRECT_MIDTRANS_RATE_LIMIT, [
+    ipAddress,
+    order.id,
+  ]);
+  if (!rateLimitResult.ok) {
+    redirect(
+      `/pesanan/${order.orderNumber}?notice=rate-limited&retryAfter=${rateLimitResult.retryAfterSeconds}`,
+    );
+  }
+
+  if (order.status !== OrderStatus.pending_payment) {
+    redirect(`/pesanan/${order.orderNumber}`);
   }
 
   const paymentLink = await ensureMidtransPaymentLink(order.id);

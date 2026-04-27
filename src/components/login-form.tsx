@@ -4,10 +4,15 @@ import { useActionState } from "react";
 
 import { loginCashier } from "@/app/actions";
 
-const initialState = { error: undefined as string | undefined };
+type LoginFormState = Awaited<ReturnType<typeof loginCashier>>;
+
+const initialState: LoginFormState = { error: "" };
 
 export function LoginForm() {
-  const [state, formAction, isPending] = useActionState(loginCashier, initialState);
+  const [state, formAction, isPending] = useActionState<LoginFormState, FormData>(
+    loginCashier,
+    initialState,
+  );
 
   return (
     <form action={formAction} className="space-y-4">
@@ -29,7 +34,10 @@ export function LoginForm() {
         />
       </div>
       {state.error ? (
-        <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{state.error}</p>
+        <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+          {state.error}
+          {state.retryAfterSeconds ? ` (${state.retryAfterSeconds} detik)` : ""}
+        </p>
       ) : null}
       <button
         type="submit"

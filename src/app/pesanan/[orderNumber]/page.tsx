@@ -9,6 +9,7 @@ import { OrderStatusTimeline } from "@/components/order-status-timeline";
 import { StatusBadge } from "@/components/status-badge";
 import { orderStatusLabels, paymentMethodLabels, paymentProofLabels } from "@/lib/constants";
 import { getMidtransTransactionStatus, resolveMidtransOrderStatus } from "@/lib/midtrans";
+import { getOrderEta } from "@/lib/order-eta";
 import { getPrisma } from "@/lib/prisma";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -100,10 +101,13 @@ function getPaymentStatusCopy(
 
 export default async function OrderStatusPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ orderNumber: string }>;
+  searchParams?: Promise<{ notice?: string; retryAfter?: string }>;
 }) {
   const { orderNumber } = await params;
+  const resolvedSearchParams = (await searchParams) ?? {};
   const prisma = getPrisma();
   let order = await prisma.order.findUnique({
     where: { orderNumber },
@@ -166,6 +170,10 @@ export default async function OrderStatusPage({
     currentOrder.paymentMethod,
     currentOrder.status,
   );
+  const eta = getOrderEta(currentOrder.status);
+  const retryAfterSeconds = Number(resolvedSearchParams.retryAfter ?? 0);
+  const showRateLimitNotice =
+    resolvedSearchParams.notice === "rate-limited" && Number.isFinite(retryAfterSeconds);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
@@ -182,7 +190,16 @@ export default async function OrderStatusPage({
           <StatusBadge tone={currentOrder.status}>{orderStatusLabels[currentOrder.status]}</StatusBadge>
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+        {showRateLimitNotice ? (
+          <div className="mt-6 rounded-[24px] border border-amber-200 bg-amber-50 p-4 sm:rounded-[28px] sm:p-5">
+            <p className="text-sm font-semibold text-amber-900">Terlalu banyak percobaan pembayaran</p>
+            <p className="mt-2 text-sm text-amber-800">
+              Coba lagi dalam {Math.max(1, Math.floor(retryAfterSeconds))} detik.
+            </p>
+          </div>
+        ) : null}
+
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-3xl bg-stone-50 p-4">
             <p className="text-sm text-stone-500">Metode bayar</p>
             <p className="mt-1 font-semibold text-stone-950">
@@ -198,6 +215,10 @@ export default async function OrderStatusPage({
             <p className="mt-1 font-semibold text-orange-600">
               {formatCurrency(currentOrder.totalAmount)}
             </p>
+          </div>
+          <div className="rounded-3xl bg-stone-50 p-4">
+            <p className="text-sm text-stone-500">Estimasi siap</p>
+            <p className="mt-1 font-semibold text-stone-950">{eta.shortLabel}</p>
           </div>
         </div>
 
@@ -302,6 +323,12 @@ export default async function OrderStatusPage({
                   </button>
                 </form>
               )}
+              <Link
+                href={`/pesanan/${currentOrder.orderNumber}?manualRefresh=1`}
+                className="rounded-full border border-orange-300 px-5 py-3 text-center font-semibold text-orange-700 hover:bg-orange-100"
+              >
+                Cek ulang status
+              </Link>
             </div>
             <OrderStatusAutoRefresh enabled />
           </div>

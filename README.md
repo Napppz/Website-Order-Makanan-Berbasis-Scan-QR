@@ -80,6 +80,8 @@ Tambahkan environment variable ini:
 - `CLOUDFLARE_R2_SECRET_ACCESS_KEY`
 - `CLOUDFLARE_R2_BUCKET_NAME`
 - `CLOUDFLARE_R2_PUBLIC_URL`
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
 
 Catatan:
 
@@ -116,8 +118,15 @@ Nilai ini bisa diubah dari file `.env` sebelum menjalankan `npm run db:seed`.
 ## Script penting
 
 - `npm run dev` menjalankan Next.js dev server dengan Webpack
+- `npm run typecheck` cek TypeScript tanpa emit
+- `npm run check` jalankan rangkaian verifikasi `typecheck` + `lint` + `build`
 - `npm run build` build production
 - `npm run lint` cek lint
 - `npm run db:generate` generate Prisma client
 - `npm run db:push` sinkronkan schema Prisma ke database aktif
 - `npm run db:seed` isi data awal kasir, meja, kategori, menu, dan order demo
+
+Catatan untuk Windows PowerShell:
+
+- Jika `npm` terblokir execution policy (`npm.ps1`), pakai `npm.cmd run build` untuk build lokal.
+- Pipeline deploy Vercel tetap memakai `npm run build` dengan verifikasi env otomatis dari `prebuild`.

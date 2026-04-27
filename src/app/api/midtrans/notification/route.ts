@@ -8,6 +8,7 @@ import {
   type MidtransNotificationPayload,
 } from "@/lib/midtrans";
 import { getPrisma } from "@/lib/prisma";
+import { enforceRateLimit, getRateLimitClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   const payload = (await request.json()) as MidtransNotificationPayload;
@@ -19,6 +20,19 @@ export async function POST(request: Request) {
   const orderNumber = payload.order_id?.trim();
   if (!orderNumber) {
     return NextResponse.json({ ok: false, error: "Missing order id" }, { status: 400 });
+  }
+
+  const ipAddress = await getRateLimitClientIp();
+  const rateLimitResult = await enforceRateLimit(
+    {
+      keyPrefix: "midtrans-notification",
+      limit: 40,
+      windowSeconds: 60,
+    },
+    [ipAddress, orderNumber],
+  );
+  if (!rateLimitResult.ok) {
+    return NextResponse.json({ ok: true, throttled: true });
   }
 
   const nextStatus = resolveMidtransOrderStatus(payload);

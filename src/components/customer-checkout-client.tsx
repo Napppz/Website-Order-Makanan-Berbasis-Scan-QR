@@ -101,7 +101,12 @@ export function CustomerCheckoutClient({
 
       const result = await submitCustomerOrder(formData);
       if (!result.success) {
-        setError(result.error ?? "Pesanan gagal dikirim.");
+        const baseMessage = result.error ?? "Pesanan gagal dikirim.";
+        setError(
+          result.retryAfterSeconds
+            ? `${baseMessage} (${result.retryAfterSeconds} detik)`
+            : baseMessage,
+        );
         return;
       }
 
