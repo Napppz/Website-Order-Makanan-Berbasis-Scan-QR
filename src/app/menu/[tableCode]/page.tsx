@@ -3,6 +3,29 @@ import { notFound } from "next/navigation";
 import { CustomerOrderClient } from "@/components/customer-order-client";
 import { getPrisma } from "@/lib/prisma";
 
+type MenuGroup = {
+  id: string;
+  name: string;
+  menuItems: {
+    id: string;
+    name: string;
+    description: string | null;
+    price: number;
+    stock: number;
+    imageUrl: string | null;
+    isAvailable: boolean;
+  }[];
+};
+
+function getMenuItemStock(menuItem: unknown) {
+  if (!menuItem || typeof menuItem !== "object") {
+    return 0;
+  }
+
+  const stock = (menuItem as { stock?: unknown }).stock;
+  return typeof stock === "number" ? stock : 0;
+}
+
 export default async function CustomerMenuPage({
   params,
 }: {
@@ -29,6 +52,22 @@ export default async function CustomerMenuPage({
       },
     });
 
+    const normalizedCategories: MenuGroup[] = categories.map((category) => ({
+      id: category.id,
+      name: category.name,
+      menuItems: category.menuItems.map((menuItem) => {
+        return {
+          id: menuItem.id,
+          name: menuItem.name,
+          description: menuItem.description,
+          price: menuItem.price,
+          stock: getMenuItemStock(menuItem),
+          imageUrl: menuItem.imageUrl,
+          isAvailable: menuItem.isAvailable,
+        };
+      }),
+    }));
+
     return (
       <main className="mx-auto max-w-7xl px-4 py-5 sm:px-5 md:px-8 md:py-8">
         <section className="mb-6 overflow-hidden rounded-[28px] bg-stone-950 px-5 py-6 text-white shadow-xl sm:rounded-[32px] sm:px-6 sm:py-8">
@@ -48,12 +87,12 @@ export default async function CustomerMenuPage({
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl bg-white/10 px-4 py-3">
               <p className="text-xs uppercase tracking-[0.2em] text-orange-200">Kategori aktif</p>
-              <p className="mt-1 text-xl font-semibold">{categories.length}</p>
+              <p className="mt-1 text-xl font-semibold">{normalizedCategories.length}</p>
             </div>
             <div className="rounded-2xl bg-white/10 px-4 py-3">
               <p className="text-xs uppercase tracking-[0.2em] text-orange-200">Menu tersedia</p>
               <p className="mt-1 text-xl font-semibold">
-                {categories.reduce(
+                {normalizedCategories.reduce(
                   (sum, category) =>
                     sum +
                     category.menuItems.filter((item) => item.isAvailable && item.stock > 0)
@@ -70,7 +109,7 @@ export default async function CustomerMenuPage({
         </section>
 
         <CustomerOrderClient
-          categories={categories}
+          categories={normalizedCategories}
           tableId={table.id}
           tableName={table.name}
         />
