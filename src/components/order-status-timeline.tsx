@@ -27,10 +27,18 @@ function getTimelineSteps(status: OrderStatus): TimelineStep[] {
     ];
   }
 
-  const isPaidLike = [OrderStatus.paid, OrderStatus.processing, OrderStatus.completed].includes(
-    status,
-  );
-  const isProcessingLike = [OrderStatus.processing, OrderStatus.completed].includes(status);
+  const paidLikeStatuses: OrderStatus[] = [
+    OrderStatus.paid,
+    OrderStatus.processing,
+    OrderStatus.completed,
+  ];
+  const processingLikeStatuses: OrderStatus[] = [
+    OrderStatus.processing,
+    OrderStatus.completed,
+  ];
+
+  const isPaidLike = paidLikeStatuses.includes(status);
+  const isProcessingLike = processingLikeStatuses.includes(status);
   const isCompleted = status === OrderStatus.completed;
 
   return [
