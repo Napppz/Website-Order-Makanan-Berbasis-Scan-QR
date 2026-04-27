@@ -18,6 +18,10 @@ import {
   deleteR2ObjectByUrl,
   uploadBufferToR2,
 } from "@/lib/cloudflare-r2";
+import {
+  createMidtransTransaction,
+  getMidtransConfigurationError,
+} from "@/lib/midtrans";
 import { getPrisma } from "@/lib/prisma";
 import { generateOrderNumber, slugify } from "@/lib/utils";
 
@@ -45,30 +49,6 @@ async function ensureUniqueOrderNumber() {
   }
 
   return `${generateOrderNumber()}-${randomUUID().slice(0, 4).toUpperCase()}`;
-}
-
-async function saveProofFile(file: File) {
-  if (!file || file.size === 0) {
-    throw new Error("Bukti pembayaran wajib diunggah.");
-  }
-
-  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-  if (!allowedTypes.includes(file.type)) {
-    throw new Error("Format bukti bayar harus JPG, PNG, atau WEBP.");
-  }
-
-  const maxSize = 3 * 1024 * 1024;
-  if (file.size > maxSize) {
-    throw new Error("Ukuran bukti bayar maksimal 3MB.");
-  }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  return uploadBufferToR2({
-    buffer,
-    contentType: file.type,
-    keyPrefix: "payment-proofs",
-    fileName: file.name || "proof-upload",
-  });
 }
 
 async function saveMenuImageFile(file: File) {
@@ -122,6 +102,63 @@ function getStockShortage(
   quantities: Map<string, number>,
 ) {
   return menuItems.find((item) => item.stock < (quantities.get(item.id) ?? 0));
+}
+
+async function ensureMidtransPaymentLink(orderId: string) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      table: true,
+      items: {
+        include: {
+          menuItem: true,
+        },
+      },
+    },
+  });
+
+  if (!order) {
+    throw new Error("Pesanan tidak ditemukan.");
+  }
+
+  if (order.paymentMethod !== PaymentMethod.midtrans_snap) {
+    return null;
+  }
+
+  if (order.paymentUrl) {
+    return { paymentUrl: order.paymentUrl, paymentToken: order.paymentToken };
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
+  if (!baseUrl) {
+    throw new Error("NEXT_PUBLIC_APP_URL belum dikonfigurasi.");
+  }
+
+  const transaction = await createMidtransTransaction({
+    orderNumber: order.orderNumber,
+    grossAmount: order.totalAmount,
+    customerName: order.customerName,
+    finishRedirectUrl: `${baseUrl}/pesanan/${order.orderNumber}`,
+    items: order.items.map((item) => ({
+      id: item.menuItemId,
+      name: item.menuItem.name,
+      price: item.unitPrice,
+      quantity: item.quantity,
+    })),
+  });
+
+  await prisma.order.update({
+    where: { id: order.id },
+    data: {
+      paymentToken: transaction.token,
+      paymentUrl: transaction.redirect_url,
+    },
+  });
+
+  return {
+    paymentUrl: transaction.redirect_url,
+    paymentToken: transaction.token,
+  };
 }
 
 export async function loginCashier(_: { error?: string } | undefined, formData: FormData) {
@@ -417,6 +454,17 @@ export async function submitCustomerOrder(formData: FormData) {
       return { success: false, error: "Metode pembayaran tidak valid." };
     }
 
+    if (paymentMethod === PaymentMethod.qris_upload) {
+      return { success: false, error: "Metode upload bukti QRIS sudah tidak dipakai lagi." };
+    }
+
+    if (paymentMethod === PaymentMethod.midtrans_snap) {
+      const configurationError = getMidtransConfigurationError();
+      if (configurationError) {
+        return { success: false, error: configurationError };
+      }
+    }
+
     const table = await prisma.table.findUnique({ where: { id: tableId } });
     if (!table) {
       return { success: false, error: "Meja tidak ditemukan." };
@@ -451,16 +499,6 @@ export async function submitCustomerOrder(formData: FormData) {
     }, 0);
 
     const orderNumber = await ensureUniqueOrderNumber();
-    const proofFile = formData.get("paymentProof");
-
-    const imageUrl =
-      paymentMethod === PaymentMethod.qris_upload && proofFile instanceof File
-        ? await saveProofFile(proofFile)
-        : null;
-
-    if (paymentMethod === PaymentMethod.qris_upload && !imageUrl) {
-      return { success: false, error: "Bukti bayar QRIS wajib diunggah." };
-    }
 
     const order = await prisma.$transaction(async (tx) => {
       for (const [menuItemId, quantity] of requestedQuantities) {
@@ -489,8 +527,8 @@ export async function submitCustomerOrder(formData: FormData) {
           notes: notes || null,
           paymentMethod: paymentMethod as PaymentMethod,
           status:
-            paymentMethod === PaymentMethod.qris_upload
-              ? OrderStatus.payment_submitted
+            paymentMethod === PaymentMethod.midtrans_snap
+              ? OrderStatus.pending_payment
               : OrderStatus.pending_payment,
           totalAmount,
           items: {
@@ -506,23 +544,24 @@ export async function submitCustomerOrder(formData: FormData) {
               };
             }),
           },
-          paymentProof: imageUrl
-            ? {
-                create: {
-                  imageUrl,
-                  status: PaymentProofStatus.submitted,
-                },
-              }
-            : undefined,
         },
       });
     });
+
+    const paymentLink =
+      paymentMethod === PaymentMethod.midtrans_snap
+        ? await ensureMidtransPaymentLink(order.id)
+        : null;
 
     revalidatePath(`/menu/${table.code}`);
     revalidatePath("/kasir");
     revalidatePath("/kasir/pesanan");
 
-    return { success: true, orderNumber: order.orderNumber };
+    return {
+      success: true,
+      orderNumber: order.orderNumber,
+      paymentUrl: paymentLink?.paymentUrl ?? null,
+    };
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Terjadi kesalahan saat membuat pesanan.";
@@ -539,10 +578,7 @@ export async function createManualOrderAction(formData: FormData) {
     const tableId = String(formData.get("tableId") ?? "");
     const notes = String(formData.get("notes") ?? "").trim();
     const items = parseCart(String(formData.get("cart") ?? "[]"));
-    const paymentMethod =
-      formData.get("paymentMethod") === PaymentMethod.qris_upload
-        ? PaymentMethod.qris_upload
-        : PaymentMethod.cashier;
+    const paymentMethod = PaymentMethod.cashier;
 
     const menuItems = await prisma.menuItem.findMany({
       where: { id: { in: items.map((item) => item.menuItemId) } },
@@ -599,10 +635,7 @@ export async function createManualOrderAction(formData: FormData) {
           tableId,
           notes: notes || null,
           paymentMethod,
-          status:
-            paymentMethod === PaymentMethod.cashier
-              ? OrderStatus.pending_payment
-              : OrderStatus.payment_submitted,
+          status: OrderStatus.pending_payment,
           totalAmount,
           items: {
             create: items.map((item) => {
@@ -724,4 +757,32 @@ export async function rejectPaymentProofAction(formData: FormData) {
 
   revalidatePath("/kasir");
   revalidatePath("/kasir/pesanan");
+}
+
+export async function redirectToMidtransPaymentAction(formData: FormData) {
+  const orderId = String(formData.get("orderId") ?? "");
+
+  if (!orderId) {
+    return;
+  }
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: {
+      id: true,
+      orderNumber: true,
+      paymentMethod: true,
+    },
+  });
+
+  if (!order || order.paymentMethod !== PaymentMethod.midtrans_snap) {
+    return;
+  }
+
+  const paymentLink = await ensureMidtransPaymentLink(order.id);
+  if (!paymentLink?.paymentUrl) {
+    redirect(`/pesanan/${order.orderNumber}`);
+  }
+
+  redirect(paymentLink.paymentUrl);
 }

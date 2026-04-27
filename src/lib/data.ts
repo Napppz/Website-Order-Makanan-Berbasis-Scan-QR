@@ -1,4 +1,4 @@
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, PaymentMethod } from "@prisma/client";
 
 import { getPrisma } from "@/lib/prisma";
 
@@ -40,7 +40,13 @@ export async function getDashboardStats() {
     }),
     prisma.order.count({
       where: {
-        status: OrderStatus.payment_submitted,
+        OR: [
+          { status: OrderStatus.payment_submitted },
+          {
+            paymentMethod: PaymentMethod.midtrans_snap,
+            status: OrderStatus.pending_payment,
+          },
+        ],
       },
     }),
     prisma.order.aggregate({

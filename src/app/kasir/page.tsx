@@ -65,10 +65,10 @@ export default async function CashierDashboardPage() {
               <h2 className="mt-2 text-2xl font-semibold text-stone-950">Fokus kerja kasir sekarang</h2>
             </div>
             <Link
-              href="/kasir/pesanan?filter=payment_submitted"
+              href="/kasir/pesanan?filter=pending_payment"
               className="rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white"
             >
-              Cek bukti bayar
+              Cek pembayaran
             </Link>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -77,13 +77,13 @@ export default async function CashierDashboardPage() {
               <p className="mt-2 text-3xl font-bold text-amber-900">{stats.pendingCount}</p>
             </div>
             <div className="rounded-3xl bg-sky-50 p-4 ring-1 ring-sky-200">
-              <p className="text-sm text-sky-700">Bukti QRIS masuk</p>
+              <p className="text-sm text-sky-700">Pending Midtrans / bukti lama</p>
               <p className="mt-2 text-3xl font-bold text-sky-900">{stats.qrisReviewCount}</p>
             </div>
           </div>
           <p className="mt-4 text-sm leading-7 text-stone-600">
-            Prioritaskan review bukti QRIS lebih dulu supaya customer tidak menunggu validasi terlalu lama,
-            lalu lanjutkan order yang sudah berstatus dibayar ke tahap proses dapur.
+            Pantau pembayaran customer yang masih pending, lalu lanjutkan order yang sudah
+            berstatus dibayar ke tahap proses dapur.
           </p>
         </div>
       </section>

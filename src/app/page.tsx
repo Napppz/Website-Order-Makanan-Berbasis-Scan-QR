@@ -38,7 +38,8 @@ export default async function HomePage() {
               </h1>
               <p className="max-w-2xl text-base leading-7 text-stone-300 sm:text-lg sm:leading-8">
                 Customer cukup scan QR meja untuk melihat menu, membuat pesanan makanan dan
-                minuman, lalu memilih bayar di kasir atau upload bukti bayar QRIS.
+                minuman, lalu memilih bayar di kasir atau checkout online lewat Midtrans
+                Sandbox.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -75,7 +76,7 @@ export default async function HomePage() {
               <ol className="mt-4 space-y-3 text-sm font-medium">
                 <li>1. Customer scan QR di meja</li>
                 <li>2. Customer pilih menu dan checkout</li>
-                <li>3. Kasir verifikasi pembayaran dan proses order</li>
+                <li>3. Customer bayar online atau kasir konfirmasi pembayaran</li>
               </ol>
             </div>
           </div>

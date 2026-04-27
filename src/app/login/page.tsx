@@ -21,8 +21,8 @@ export default async function LoginPage() {
             Kontrol pesanan QR restoran dari satu panel kasir.
           </h1>
           <p className="mt-4 max-w-lg text-sm leading-7 text-stone-300 sm:text-base sm:leading-8">
-            Kasir dapat melihat pesanan, memverifikasi pembayaran QRIS, menandai order
-            dibayar, mengelola meja, menu, dan membuat order manual untuk pelanggan walk-in.
+            Kasir dapat melihat pesanan, memantau pembayaran customer, menandai order dibayar,
+            mengelola meja, menu, dan membuat order manual untuk pelanggan walk-in.
           </p>
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             <div className="rounded-3xl bg-white/10 p-4">

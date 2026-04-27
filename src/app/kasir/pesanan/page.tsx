@@ -107,7 +107,10 @@ export default async function OrderManagementPage({
 
   const orders = await getOrders(selectedFilter, q);
   const query = q?.trim() ?? "";
-  const submittedCount = orders.filter((order) => order.status === OrderStatus.payment_submitted).length;
+  const midtransPendingCount = orders.filter(
+    (order) =>
+      order.paymentMethod === "midtrans_snap" && order.status === OrderStatus.pending_payment,
+  ).length;
   const processingCount = orders.filter((order) => order.status === OrderStatus.processing).length;
 
   return (
@@ -140,8 +143,8 @@ export default async function OrderManagementPage({
 
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           <div className="rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-200">
-            <p className="text-sm text-amber-700">Menunggu review bukti</p>
-            <p className="mt-2 text-3xl font-bold text-amber-900">{submittedCount}</p>
+            <p className="text-sm text-amber-700">Menunggu pembayaran online</p>
+            <p className="mt-2 text-3xl font-bold text-amber-900">{midtransPendingCount}</p>
           </div>
           <div className="rounded-3xl bg-sky-50 p-4 ring-1 ring-sky-200">
             <p className="text-sm text-sky-700">Sedang diproses</p>
@@ -230,7 +233,7 @@ export default async function OrderManagementPage({
                           {order.status === OrderStatus.pending_payment &&
                             "Prioritaskan pembayaran atau batalkan jika order tidak lanjut."}
                           {order.status === OrderStatus.payment_submitted &&
-                            "Review bukti bayar atau lanjutkan ke proses dapur."}
+                            "Masih ada order lama dengan bukti QRIS yang menunggu review."}
                           {order.status === OrderStatus.paid &&
                             "Pembayaran aman, order siap diproses."}
                           {order.status === OrderStatus.processing &&
@@ -308,8 +311,9 @@ export default async function OrderManagementPage({
                     </div>
                   ) : (
                     <div className="rounded-3xl border border-dashed border-stone-300 p-4 text-sm text-stone-500">
-                      Tidak ada bukti bayar. Jika pelanggan membayar langsung di kasir, gunakan tombol
-                      <span className="font-semibold text-stone-700"> Tandai paid</span>.
+                      {order.paymentMethod === "midtrans_snap"
+                        ? "Order ini menggunakan Midtrans Sandbox. Tunggu notifikasi pembayaran atau tandai paid jika pembayaran sudah dipastikan masuk."
+                        : "Tidak ada bukti bayar. Jika pelanggan membayar langsung di kasir, gunakan tombol Tandai paid."}
                     </div>
                   )}
                 </div>

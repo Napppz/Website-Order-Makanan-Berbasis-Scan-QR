@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { PaymentMethod } from "@prisma/client";
 import { useRouter } from "next/navigation";
 
 import { createManualOrderAction } from "@/app/actions";
@@ -36,7 +35,6 @@ export function ManualOrderClient({
 }) {
   const router = useRouter();
   const [selectedTable, setSelectedTable] = useState(tables[0]?.id ?? "");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.cashier);
   const [customerName, setCustomerName] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +93,6 @@ export function ManualOrderClient({
       formData.set("tableId", selectedTable);
       formData.set("customerName", customerName);
       formData.set("notes", notes);
-      formData.set("paymentMethod", paymentMethod);
       formData.set("cart", JSON.stringify(cart));
 
       const result = await createManualOrderAction(formData);
@@ -110,20 +107,20 @@ export function ManualOrderClient({
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+    <div className="grid gap-4 lg:gap-6 xl:grid-cols-[minmax(0,1.18fr)_minmax(320px,0.82fr)]">
       <div className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-stone-200 sm:rounded-[28px] sm:p-6">
         <h2 className="text-xl font-semibold text-stone-950">Form pesanan manual</h2>
         <p className="mt-1 text-sm text-stone-500">
           Gunakan halaman ini untuk membuat pesanan walk-in langsung dari dashboard kasir.
         </p>
 
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <div className="mt-6 grid gap-4 xl:grid-cols-2">
           <div className="space-y-2">
             <label className="text-sm font-medium text-stone-700">Nama pelanggan</label>
             <input
               value={customerName}
               onChange={(event) => setCustomerName(event.target.value)}
-              className="w-full rounded-2xl border border-stone-300 px-4 py-3 outline-none focus:border-orange-500"
+              className="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none focus:border-orange-500 sm:text-base"
               placeholder="Contoh: Bapak Arif"
             />
           </div>
@@ -132,7 +129,7 @@ export function ManualOrderClient({
             <select
               value={selectedTable}
               onChange={(event) => setSelectedTable(event.target.value)}
-              className="w-full rounded-2xl border border-stone-300 px-4 py-3 outline-none focus:border-orange-500"
+              className="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none focus:border-orange-500 sm:text-base"
             >
               {tables.map((table) => (
                 <option key={table.id} value={table.id}>
@@ -148,45 +145,23 @@ export function ManualOrderClient({
           <textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            className="min-h-24 w-full rounded-2xl border border-stone-300 px-4 py-3 outline-none focus:border-orange-500"
+            className="min-h-24 w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none focus:border-orange-500 sm:text-base"
             placeholder="Catatan umum untuk order ini"
           />
         </div>
 
-        <div className="mt-6 grid gap-3 lg:grid-cols-2">
-          <label className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-            <div className="flex items-center gap-3">
-              <input
-                type="radio"
-                checked={paymentMethod === PaymentMethod.cashier}
-                onChange={() => setPaymentMethod(PaymentMethod.cashier)}
-              />
-              <div>
-                <p className="font-semibold text-stone-900">Bayar di kasir</p>
-                <p className="text-sm text-stone-500">Kasir akan tandai lunas setelah pembayaran diterima.</p>
-              </div>
-            </div>
-          </label>
-          <label className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-            <div className="flex items-center gap-3">
-              <input
-                type="radio"
-                checked={paymentMethod === PaymentMethod.qris_upload}
-                onChange={() => setPaymentMethod(PaymentMethod.qris_upload)}
-              />
-              <div>
-                <p className="font-semibold text-stone-900">Menunggu bukti QRIS</p>
-                <p className="text-sm text-stone-500">Order dibuat, pembayaran diverifikasi belakangan.</p>
-              </div>
-            </div>
-          </label>
+        <div className="mt-6 rounded-2xl border border-stone-200 bg-stone-50 p-4">
+          <p className="font-semibold text-stone-900">Pembayaran manual kasir</p>
+          <p className="mt-1 text-sm text-stone-500">
+            Pesanan yang dibuat dari dashboard kasir otomatis menggunakan alur bayar di kasir.
+          </p>
         </div>
 
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-3 sm:space-y-4">
           {menuItems.map((menuItem) => {
             const quantity = cart.find((item) => item.menuItemId === menuItem.id)?.quantity ?? 0;
             return (
-              <div key={menuItem.id} className="rounded-3xl border border-stone-200 p-4">
+              <div key={menuItem.id} className="rounded-3xl border border-stone-200 p-4 sm:p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <p className="text-xs uppercase tracking-[0.25em] text-stone-400">
@@ -200,19 +175,19 @@ export function ManualOrderClient({
                       Stok {menuItem.stock}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
                     <button
                       type="button"
                       onClick={() => updateQuantity(menuItem.id, -1)}
-                      className="h-9 w-9 rounded-full border border-stone-300"
+                      className="h-10 w-10 rounded-full border border-stone-300 bg-white text-base font-semibold"
                     >
                       -
                     </button>
-                    <span className="min-w-8 text-center font-semibold">{quantity}</span>
+                    <span className="min-w-9 text-center text-base font-semibold">{quantity}</span>
                     <button
                       type="button"
                       onClick={() => updateQuantity(menuItem.id, 1)}
-                      className="h-9 w-9 rounded-full bg-stone-950 text-white"
+                      className="h-10 w-10 rounded-full bg-stone-950 text-base font-semibold text-white"
                     >
                       +
                     </button>
@@ -222,7 +197,7 @@ export function ManualOrderClient({
                   <textarea
                     value={cart.find((item) => item.menuItemId === menuItem.id)?.note ?? ""}
                     onChange={(event) => updateNote(menuItem.id, event.target.value)}
-                    className="mt-3 min-h-20 w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none focus:border-orange-500"
+                    className="mt-3 min-h-20 w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none focus:border-orange-500"
                     placeholder="Catatan item"
                   />
                 ) : null}
@@ -232,9 +207,21 @@ export function ManualOrderClient({
         </div>
       </div>
 
-      <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
-        <div className="rounded-[24px] bg-stone-950 p-4 text-white sm:rounded-[28px] sm:p-6">
+      <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+        <div className="rounded-[24px] bg-stone-950 p-4 text-white shadow-xl sm:rounded-[28px] sm:p-6">
           <h3 className="text-xl font-semibold">Ringkasan order</h3>
+          <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-white/10 p-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-stone-300">Item</p>
+              <p className="mt-1 text-lg font-semibold">
+                {cart.reduce((sum, item) => sum + item.quantity, 0)}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs uppercase tracking-[0.18em] text-stone-300">Total</p>
+              <p className="mt-1 text-lg font-semibold text-orange-200">{formatCurrency(total)}</p>
+            </div>
+          </div>
           <div className="mt-4 space-y-3">
             {cart.length ? (
               cart.map((item) => {
@@ -243,12 +230,15 @@ export function ManualOrderClient({
 
                 return (
                   <div key={item.menuItemId} className="rounded-2xl bg-white/10 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
                         <p className="font-semibold">{menuItem.name}</p>
                         <p className="text-sm text-stone-300">
                           {item.quantity} x {formatCurrency(menuItem.price)}
                         </p>
+                        {item.note ? (
+                          <p className="mt-2 text-sm text-stone-300">{item.note}</p>
+                        ) : null}
                       </div>
                       <p className="font-semibold">
                         {formatCurrency(menuItem.price * item.quantity)}

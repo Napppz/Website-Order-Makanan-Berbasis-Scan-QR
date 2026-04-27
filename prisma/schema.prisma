@@ -11,6 +11,7 @@ datasource db {
 enum PaymentMethod {
   cashier
   qris_upload
+  midtrans_snap
 }
 
 enum OrderStatus {
@@ -82,6 +83,8 @@ model Order {
   paymentMethod PaymentMethod
   status        OrderStatus
   totalAmount   Int
+  paymentToken  String?
+  paymentUrl    String?
   paidAt        DateTime?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt

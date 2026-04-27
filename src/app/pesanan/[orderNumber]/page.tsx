@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PaymentMethod } from "@prisma/client";
 
+import { redirectToMidtransPaymentAction } from "@/app/actions";
 import { StatusBadge } from "@/components/status-badge";
 import { orderStatusLabels, paymentMethodLabels, paymentProofLabels } from "@/lib/constants";
 import { getPrisma } from "@/lib/prisma";
@@ -101,6 +103,36 @@ export default async function OrderStatusPage({
             >
               Lihat bukti bayar
             </a>
+          </div>
+        ) : null}
+
+        {order.paymentMethod === PaymentMethod.midtrans_snap &&
+        order.status === "pending_payment" ? (
+          <div className="mt-6 rounded-[24px] border border-orange-200 bg-orange-50 p-4 sm:rounded-[28px] sm:p-5">
+            <h2 className="text-lg font-semibold text-stone-950">Pembayaran online belum selesai</h2>
+            <p className="mt-2 text-sm leading-7 text-stone-600">
+              Lanjutkan pembayaran melalui Midtrans Sandbox sampai status order berubah menjadi
+              sudah dibayar.
+            </p>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              {order.paymentUrl ? (
+                <a
+                  href={order.paymentUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full bg-orange-500 px-5 py-3 text-center font-semibold text-white hover:bg-orange-600"
+                >
+                  Bayar sekarang
+                </a>
+              ) : (
+                <form action={redirectToMidtransPaymentAction}>
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <button className="rounded-full bg-orange-500 px-5 py-3 text-center font-semibold text-white hover:bg-orange-600">
+                    Buat link pembayaran
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
         ) : null}
 

@@ -12,6 +12,7 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
 export const paymentMethodLabels: Record<PaymentMethod, string> = {
   cashier: "Bayar di kasir",
   qris_upload: "Upload bukti bayar QRIS",
+  midtrans_snap: "Midtrans Sandbox",
 };
 
 export const paymentProofLabels: Record<PaymentProofStatus, string> = {

@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
-      // QRIS proof uploads allow files up to 3MB, so the action body limit
-      // needs extra headroom for multipart form data.
+      // Menu image uploads still use multipart form data, so the action body
+      // limit needs some headroom.
       bodySizeLimit: "5mb",
     },
   },

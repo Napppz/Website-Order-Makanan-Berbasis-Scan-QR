@@ -1,12 +1,11 @@
 "use client";
 
-import { useDeferredValue, useMemo, useRef, useState, useTransition } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { PaymentMethod } from "@prisma/client";
 import { useRouter } from "next/navigation";
 
-import { submitCustomerOrder } from "@/app/actions";
+import { saveCustomerCart, type CustomerCartEntry } from "@/lib/customer-cart";
 import { cn, formatCurrency } from "@/lib/utils";
 
 type MenuGroup = {
@@ -23,14 +22,6 @@ type MenuGroup = {
   }[];
 };
 
-type CartEntry = {
-  menuItemId: string;
-  name: string;
-  price: number;
-  quantity: number;
-  note: string;
-};
-
 type FlyToCartItem = {
   id: number;
   label: string;
@@ -42,26 +33,25 @@ type FlyToCartItem = {
 
 export function CustomerOrderClient({
   categories,
-  tableId,
+  tableCode,
   tableName,
 }: {
   categories: MenuGroup[];
-  tableId: string;
+  tableCode: string;
   tableName: string;
 }) {
   const router = useRouter();
-  const [customerName, setCustomerName] = useState("");
-  const [notes, setNotes] = useState("");
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.cashier);
-  const [proofFile, setProofFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const [cart, setCart] = useState<CartEntry[]>([]);
+  const [cart, setCart] = useState<CustomerCartEntry[]>(() => loadInitialCart(tableCode));
   const [flyToCartItems, setFlyToCartItems] = useState<FlyToCartItem[]>([]);
   const flyToCartIdRef = useRef(0);
   const deferredSearch = useDeferredValue(search);
+
+  useEffect(() => {
+    saveCustomerCart(tableCode, cart);
+  }, [cart, tableCode]);
 
   const allAvailableItems = useMemo(
     () =>
@@ -218,44 +208,14 @@ export function CustomerOrderClient({
     );
   }
 
-  function submitOrder() {
+  function goToCheckout() {
     if (!cart.length) {
       setError("Keranjang masih kosong.");
       return;
     }
 
     setError(null);
-
-    startTransition(async () => {
-      const formData = new FormData();
-      formData.set("customerName", customerName);
-      formData.set("tableId", tableId);
-      formData.set("notes", notes);
-      formData.set("paymentMethod", paymentMethod);
-      formData.set(
-        "cart",
-        JSON.stringify(
-          cart.map((item) => ({
-            menuItemId: item.menuItemId,
-            quantity: item.quantity,
-            note: item.note,
-          })),
-        ),
-      );
-
-      if (proofFile) {
-        formData.set("paymentProof", proofFile);
-      }
-
-      const result = await submitCustomerOrder(formData);
-      if (!result.success) {
-        setError(result.error ?? "Pesanan gagal dikirim.");
-        return;
-      }
-
-      router.push(`/pesanan/${result.orderNumber}`);
-      router.refresh();
-    });
+    router.push(`/menu/${tableCode}/checkout`);
   }
 
   return (
@@ -277,14 +237,14 @@ export function CustomerOrderClient({
         </div>
       ))}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.92fr)]">
+      <div className="grid gap-4 lg:gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.88fr)]">
         <div className="space-y-5">
           <section className="animate-fade-up-soft rounded-[24px] border border-stone-200 bg-white p-4 shadow-sm sm:rounded-[28px] sm:p-5">
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                className="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 outline-none focus:border-orange-500"
+                className="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none focus:border-orange-500 sm:text-base"
                 placeholder="Cari nama menu atau kategori"
               />
               <div className="rounded-2xl bg-stone-50 px-4 py-3 text-sm text-stone-600">
@@ -330,11 +290,11 @@ export function CustomerOrderClient({
                 key={category.id}
                 className="animate-fade-up-soft rounded-[24px] border border-stone-200 bg-white p-4 shadow-sm sm:rounded-[28px] sm:p-5"
               >
-                <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="text-xl font-semibold text-stone-900">{category.name}</h2>
                     <p className="text-sm text-stone-500">
-                      Pilih menu yang diinginkan, lalu cek keranjang di sebelah kanan.
+                      Pilih menu yang diinginkan, lalu lanjutkan ke checkout saat keranjang sudah siap.
                     </p>
                   </div>
                   <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">
@@ -349,11 +309,11 @@ export function CustomerOrderClient({
                     return (
                       <article
                         key={menuItem.id}
-                        className="menu-card-lift rounded-[24px] border border-stone-200 bg-stone-50 p-4"
+                        className="menu-card-lift rounded-[24px] border border-stone-200 bg-stone-50 p-4 sm:p-5"
                       >
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                           <div
-                            className="h-24 w-full shrink-0 rounded-[20px] bg-gradient-to-br from-orange-500 via-amber-300 to-orange-200 bg-cover bg-center sm:w-24"
+                            className="h-28 w-full shrink-0 rounded-[20px] bg-gradient-to-br from-orange-500 via-amber-300 to-orange-200 bg-cover bg-center sm:h-24 sm:w-24"
                             style={
                               menuItem.imageUrl
                                 ? { backgroundImage: `url(${menuItem.imageUrl})` }
@@ -362,7 +322,7 @@ export function CustomerOrderClient({
                           />
 
                           <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                               <div className="min-w-0">
                                 <h3 className="text-lg font-semibold text-stone-900">
                                   {menuItem.name}
@@ -371,7 +331,7 @@ export function CustomerOrderClient({
                                   {menuItem.description ?? "Menu favorit restoran hari ini."}
                                 </p>
                               </div>
-                              <div className="text-right">
+                              <div className="flex items-end justify-between gap-3 sm:block sm:text-right">
                                 <p className="text-base font-semibold text-orange-600">
                                   {formatCurrency(menuItem.price)}
                                 </p>
@@ -381,13 +341,13 @@ export function CustomerOrderClient({
                               </div>
                             </div>
 
-                            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                               <p className="text-sm text-stone-500">
                                 {currentQty > 0
                                   ? `Sudah dipilih ${currentQty} item`
                                   : "Belum masuk ke keranjang"}
                               </p>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 self-start sm:self-auto">
                                 <button
                                   type="button"
                                   onClick={(event) => updateCart(menuItem, -1, event)}
@@ -431,79 +391,26 @@ export function CustomerOrderClient({
           )}
         </div>
 
-        <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
+        <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
           <div className="animate-fade-up-soft rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-stone-200 sm:rounded-[28px] sm:p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-orange-500">
-              Ringkasan pesanan
+              Langkah 1
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-stone-950">{tableName}</h2>
             <p className="mt-1 text-sm text-stone-500">
-              Isi data singkat di bawah ini sebelum mengirim pesanan.
+              Pilih menu dulu di halaman ini. Setelah itu Anda lanjut ke halaman checkout
+              terpisah untuk isi data pemesan dan pilih metode pembayaran.
             </p>
-
-            <div className="mt-5 space-y-3">
-              <input
-                value={customerName}
-                onChange={(event) => setCustomerName(event.target.value)}
-                className="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 outline-none focus:border-orange-500"
-                placeholder="Nama pemesan"
-              />
-              <textarea
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                className="min-h-24 w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 outline-none focus:border-orange-500"
-                placeholder="Catatan untuk seluruh pesanan, misalnya minta alat makan tambahan"
-              />
-            </div>
-
-            <div className="mt-5 space-y-3">
-              <p className="text-sm font-semibold text-stone-900">Pilih metode pembayaran</p>
-              <label className="flex items-start gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm">
-                <input
-                  checked={paymentMethod === PaymentMethod.cashier}
-                  onChange={() => setPaymentMethod(PaymentMethod.cashier)}
-                  type="radio"
-                  name="paymentMethod"
-                  className="mt-1"
-                />
-                <div>
-                  <p className="font-semibold text-stone-900">Bayar di kasir</p>
-                  <p className="mt-1 text-stone-500">
-                    Cocok jika ingin pesan dulu dan bayar saat makanan siap.
-                  </p>
-                </div>
-              </label>
-              <label className="flex items-start gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm">
-                <input
-                  checked={paymentMethod === PaymentMethod.qris_upload}
-                  onChange={() => setPaymentMethod(PaymentMethod.qris_upload)}
-                  type="radio"
-                  name="paymentMethod"
-                  className="mt-1"
-                />
-                <div>
-                  <p className="font-semibold text-stone-900">Upload bukti bayar QRIS</p>
-                  <p className="mt-1 text-stone-500">
-                    Pilih ini jika sudah transfer dan ingin kasir memeriksa lebih cepat.
-                  </p>
-                </div>
-              </label>
-            </div>
-
-            {paymentMethod === PaymentMethod.qris_upload ? (
-              <div className="mt-4 rounded-2xl border border-stone-200 bg-orange-50 p-4">
-                <p className="text-sm font-semibold text-stone-900">Unggah bukti pembayaran</p>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={(event) => setProofFile(event.target.files?.[0] ?? null)}
-                  className="mt-3 w-full text-sm text-stone-700"
-                />
-                <p className="mt-2 text-xs text-stone-500">
-                  Format JPG, PNG, atau WEBP dengan ukuran maksimal 3MB.
-                </p>
+            <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-stone-50 p-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-stone-400">Keranjang</p>
+                <p className="mt-1 text-lg font-semibold text-stone-950">{cartQuantity} item</p>
               </div>
-            ) : null}
+              <div className="text-right">
+                <p className="text-xs uppercase tracking-[0.18em] text-stone-400">Sementara</p>
+                <p className="mt-1 text-lg font-semibold text-orange-600">{formatCurrency(total)}</p>
+              </div>
+            </div>
           </div>
 
           <div
@@ -626,24 +533,22 @@ export function CustomerOrderClient({
 
             <button
               type="button"
-              onClick={submitOrder}
-              disabled={isPending}
-              className="mt-4 w-full rounded-2xl bg-orange-500 px-4 py-3 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-60"
+              onClick={goToCheckout}
+              className="mt-4 hidden w-full rounded-2xl bg-orange-500 px-4 py-3 font-semibold text-white transition hover:bg-orange-600 xl:block"
             >
-              {isPending ? "Mengirim pesanan..." : "Kirim Pesanan"}
+              Lanjut ke Checkout
             </button>
           </div>
         </aside>
       </div>
 
-      <div className="sticky bottom-4 z-20 mt-6 xl:hidden">
+      <div className="sticky bottom-3 z-20 mt-6 xl:hidden">
         <button
           data-cart-target="true"
           type="button"
-          onClick={submitOrder}
-          disabled={isPending}
+          onClick={goToCheckout}
           className={cn(
-            "flex w-full items-center justify-between rounded-full bg-stone-950 px-5 py-4 text-left text-white shadow-xl disabled:opacity-60",
+            "flex w-full items-center justify-between rounded-[28px] bg-stone-950 px-4 py-4 text-left text-white shadow-xl ring-1 ring-white/10",
             cartQuantity > 0 && "animate-pulse-glow-soft",
           )}
         >
@@ -653,11 +558,20 @@ export function CustomerOrderClient({
             </span>
             <span className="block text-sm">{cartQuantity} item dipilih</span>
           </span>
-          <span className="text-base font-semibold">
-            {isPending ? "Mengirim..." : formatCurrency(total)}
+          <span className="text-right">
+            <span className="block text-base font-semibold">{formatCurrency(total)}</span>
+            <span className="block text-xs text-stone-300">Lanjut</span>
           </span>
         </button>
       </div>
     </>
   );
+}
+
+function loadInitialCart(tableCode: string) {
+  if (typeof window === "undefined") {
+    return [] as CustomerCartEntry[];
+  }
+
+  return loadCustomerCart(tableCode);
 }

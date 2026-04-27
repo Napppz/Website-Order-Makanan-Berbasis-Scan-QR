@@ -8,7 +8,7 @@ Website order makanan dan minuman berbasis scan QR per meja dengan dashboard kas
 - Customer bisa pilih makanan/minuman, isi catatan, lalu checkout
 - Opsi pembayaran:
   - bayar di kasir
-  - upload bukti bayar QRIS
+  - bayar online lewat Midtrans Sandbox
 - Halaman status pesanan setelah checkout
 - Dashboard kasir untuk:
   - login kasir
@@ -17,7 +17,7 @@ Website order makanan dan minuman berbasis scan QR per meja dengan dashboard kas
   - buat pesanan manual
   - lihat semua pesanan
   - filter pesanan yang sudah dibayar
-  - approve/reject bukti bayar QRIS
+  - pantau pembayaran customer
 
 ## Stack
 
@@ -72,6 +72,9 @@ Tambahkan environment variable ini:
 - `CASHIER_USERNAME`
 - `CASHIER_PASSWORD`
 - `NEXT_PUBLIC_APP_URL`
+- `MIDTRANS_MERCHANT_ID`
+- `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY`
+- `MIDTRANS_SERVER_KEY`
 - `CLOUDFLARE_R2_ACCOUNT_ID`
 - `CLOUDFLARE_R2_ACCESS_KEY_ID`
 - `CLOUDFLARE_R2_SECRET_ACCESS_KEY`
@@ -81,7 +84,8 @@ Tambahkan environment variable ini:
 Catatan:
 
 - Project ini tidak lagi memakai dependency khusus Windows.
-- Bukti bayar QRIS dan foto menu sekarang diunggah ke Cloudflare R2.
+- Foto menu sekarang diunggah ke Cloudflare R2.
+- Pembayaran customer online memakai Midtrans Sandbox melalui link checkout.
 - `CLOUDFLARE_R2_PUBLIC_URL` bisa diisi custom domain bucket Anda, misalnya `https://cdn.domainanda.com`, atau URL publik `r2.dev` untuk development.
 - Jika homepage atau halaman menu menampilkan pesan setup database, cek `DATABASE_URL`, lalu jalankan `npm run db:push` dan `npm run db:seed`.
 
