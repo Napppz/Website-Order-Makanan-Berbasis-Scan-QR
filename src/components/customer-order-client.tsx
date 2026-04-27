@@ -112,7 +112,6 @@ export function CustomerOrderClient({
       .filter((category) => category.menuItems.length > 0);
   }, [categories, deferredSearch, selectedCategory]);
 
-  const featuredItems = useMemo(() => allAvailableItems.slice(0, 3), [allAvailableItems]);
   const visibleMenuCount = useMemo(
     () =>
       filteredCategories.reduce((sum, category) => sum + category.menuItems.length, 0),
@@ -280,80 +279,6 @@ export function CustomerOrderClient({
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.92fr)]">
         <div className="space-y-5">
-          <section className="animate-fade-up-soft rounded-[24px] border border-stone-200 bg-white p-4 shadow-sm sm:rounded-[28px] sm:p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-orange-500">
-                  Cara pesan
-                </p>
-                <h2 className="mt-2 text-xl font-semibold text-stone-950 sm:text-2xl">
-                  Pesan makanan untuk {tableName} dalam 3 langkah
-                </h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
-                  Pilih menu, cek keranjang, lalu kirim pesanan. Catatan khusus bisa ditulis
-                  nanti di keranjang agar halaman ini tetap sederhana.
-                </p>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3 lg:w-[360px]">
-                <div className="rounded-2xl bg-stone-50 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-stone-500">Menu</p>
-                  <p className="mt-1 text-lg font-semibold text-stone-950">{visibleMenuCount}</p>
-                </div>
-                <div className="rounded-2xl bg-stone-50 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-stone-500">Keranjang</p>
-                  <p className="mt-1 text-lg font-semibold text-stone-950">{cartQuantity} item</p>
-                </div>
-                <div className="rounded-2xl bg-orange-50 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-orange-700">Total</p>
-                  <p className="mt-1 text-lg font-semibold text-orange-700">
-                    {formatCurrency(total)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-3 md:grid-cols-3">
-              <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
-                <p className="text-sm font-semibold text-stone-900">1. Pilih menu</p>
-                <p className="mt-1 text-sm text-stone-600">
-                  Gunakan pencarian atau kategori untuk menemukan menu lebih cepat.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
-                <p className="text-sm font-semibold text-stone-900">2. Atur jumlah</p>
-                <p className="mt-1 text-sm text-stone-600">
-                  Tekan tombol tambah. Kurangi lagi kalau jumlah belum pas.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
-                <p className="text-sm font-semibold text-stone-900">3. Kirim pesanan</p>
-                <p className="mt-1 text-sm text-stone-600">
-                  Isi nama pemesan, pilih pembayaran, lalu konfirmasi pesanan.
-                </p>
-              </div>
-            </div>
-
-            {featuredItems.length ? (
-              <div className="mt-5 flex gap-3 overflow-x-auto pb-1">
-                {featuredItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="menu-card-lift min-w-[220px] rounded-[22px] bg-stone-950 px-4 py-4 text-white"
-                  >
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-orange-200">
-                      Rekomendasi cepat
-                    </p>
-                    <p className="mt-2 font-semibold">{item.name}</p>
-                    <p className="mt-1 text-sm text-stone-300">{item.categoryName}</p>
-                    <p className="mt-3 font-semibold text-orange-300">
-                      {formatCurrency(item.price)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </section>
-
           <section className="animate-fade-up-soft rounded-[24px] border border-stone-200 bg-white p-4 shadow-sm sm:rounded-[28px] sm:p-5">
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
               <input
