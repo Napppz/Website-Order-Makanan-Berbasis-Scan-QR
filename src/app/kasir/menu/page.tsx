@@ -89,6 +89,8 @@ export default async function MenuManagementPage({
     .filter((item) => selectedCategory === "all" || item.id === selectedCategory)
     .map((category) => ({
       ...category,
+      matchesCategoryQuery:
+        !normalizedQuery || category.name.toLowerCase().includes(normalizedQuery),
       menuItems: category.menuItems.filter((item) => {
         const matchesStatus =
           selectedStatus === "all"
@@ -111,6 +113,8 @@ export default async function MenuManagementPage({
     .filter(
       (category) =>
         category.menuItems.length > 0 ||
+        (selectedStatus === "all" && !normalizedQuery) ||
+        category.matchesCategoryQuery ||
         (selectedCategory !== "all" && category.id === selectedCategory),
     );
   const visibleMenuCount = filteredCategories.reduce(
@@ -295,7 +299,9 @@ export default async function MenuManagementPage({
               <div>
                 <h2 className="text-xl font-semibold text-stone-950">{category.name}</h2>
                 <p className="text-sm text-stone-500">
-                  {category.menuItems.length} menu cocok dengan filter saat ini.
+                  {category.menuItems.length
+                    ? `${category.menuItems.length} menu cocok dengan filter saat ini.`
+                    : "Belum ada menu di kategori ini."}
                 </p>
               </div>
               <form action={deleteCategoryAction}>
