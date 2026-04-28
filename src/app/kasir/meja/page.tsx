@@ -23,6 +23,10 @@ export default async function TableManagementPage() {
     <div className="space-y-8">
       <section className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-stone-200 sm:rounded-[32px] sm:p-6">
         <h2 className="text-xl font-semibold text-stone-950">Tambah meja baru</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-500">
+          Kode meja dipakai untuk URL dan QR, misalnya <code>/menu/A4</code>. Nama meja hanya
+          dipakai sebagai label tampilan di dashboard dan halaman customer.
+        </p>
         <form action={createTableAction} className="mt-5 grid gap-4 lg:grid-cols-3">
           <input
             name="code"
@@ -51,7 +55,7 @@ export default async function TableManagementPage() {
                 <p className="mt-1 font-mono text-sm text-stone-600">{table.code}</p>
               </div>
               <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">
-                {table._count.orders} order
+                {table._count.orders} riwayat order
               </span>
             </div>
 
@@ -95,7 +99,8 @@ export default async function TableManagementPage() {
             </div>
             {table._count.orders > 0 ? (
               <p className="mt-3 text-sm text-amber-700">
-                Meja ini tidak bisa dihapus karena masih terhubung ke {table._count.orders} order.
+                Meja ini tidak bisa dihapus karena masih terhubung ke {table._count.orders} riwayat
+                order.
               </p>
             ) : (
               <p className="mt-3 text-sm text-emerald-700">Meja ini bisa dihapus.</p>
