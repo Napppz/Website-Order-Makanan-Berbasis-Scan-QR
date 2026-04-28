@@ -45,9 +45,10 @@ export default async function TableManagementPage() {
           <article key={table.id} className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-stone-200 sm:rounded-[32px] sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs uppercase tracking-[0.25em] text-stone-400">Meja</p>
+                <p className="text-xs uppercase tracking-[0.25em] text-stone-400">Nama meja</p>
                 <h2 className="mt-2 text-2xl font-semibold text-stone-950">{table.name}</h2>
-                <p className="mt-1 font-mono text-sm text-stone-500">{table.code}</p>
+                <p className="mt-3 text-xs uppercase tracking-[0.2em] text-stone-400">Kode meja</p>
+                <p className="mt-1 font-mono text-sm text-stone-600">{table.code}</p>
               </div>
               <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">
                 {table._count.orders} order
@@ -92,6 +93,13 @@ export default async function TableManagementPage() {
                 </button>
               </form>
             </div>
+            {table._count.orders > 0 ? (
+              <p className="mt-3 text-sm text-amber-700">
+                Meja ini tidak bisa dihapus karena masih terhubung ke {table._count.orders} order.
+              </p>
+            ) : (
+              <p className="mt-3 text-sm text-emerald-700">Meja ini bisa dihapus.</p>
+            )}
           </article>
         ))}
       </section>
