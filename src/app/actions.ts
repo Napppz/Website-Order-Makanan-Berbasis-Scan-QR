@@ -355,6 +355,37 @@ export async function createCategoryAction(formData: FormData) {
   revalidatePath("/kasir/menu");
 }
 
+export async function deleteCategoryAction(formData: FormData) {
+  await requireCashier();
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) {
+    return;
+  }
+
+  const category = await prisma.category.findUnique({
+    where: { id },
+    select: {
+      _count: {
+        select: { menuItems: true },
+      },
+    },
+  });
+
+  if (!category) {
+    return;
+  }
+
+  if (category._count.menuItems > 0) {
+    redirect("/kasir/menu?notice=category-not-empty");
+  }
+
+  await prisma.category.delete({ where: { id } });
+  revalidatePath("/kasir/menu");
+  revalidatePath("/");
+  redirect("/kasir/menu?notice=category-deleted");
+}
+
 export async function createMenuItemAction(formData: FormData) {
   await requireCashier();
 

@@ -7,6 +7,7 @@ type CashierActionButtonProps = {
   pendingLabel?: string;
   className: string;
   confirmMessage?: string;
+  disabled?: boolean;
 };
 
 export function CashierActionButton({
@@ -14,14 +15,21 @@ export function CashierActionButton({
   pendingLabel,
   className,
   confirmMessage,
+  disabled = false,
 }: CashierActionButtonProps) {
   const { pending } = useFormStatus();
+  const isDisabled = pending || disabled;
 
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={isDisabled}
       onClick={(event) => {
+        if (disabled) {
+          event.preventDefault();
+          return;
+        }
+
         if (confirmMessage && !window.confirm(confirmMessage)) {
           event.preventDefault();
         }
